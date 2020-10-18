@@ -1,0 +1,14 @@
+{
+  "name": "@kimamula/fizzbuzz",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "bin": "bin.js",
+  "scripts": {
+    "test": "node test",
+    "prepublishOnly": "npm test"
+  },
+  "keywords": [],
+  "author": "Kenji Imamula <kenji.imamula@gmail.com>",
+  "license": "MIT"
+}

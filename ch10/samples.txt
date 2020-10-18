@@ -1,0 +1,1114 @@
+// 10章に登場するサンプルコード
+
+/** SHELL **/
+$ npm init 
+This utility will walk you through creating a package.json file.
+It only covers the most common items, and tries to guess sensible defaults.
+
+See `npm help json` for definitive documentation on these fields
+and exactly what they do.
+
+Use `npm install <pkg>` afterwards to install a package and
+save it as a dependency in the package.json file.
+
+Press ^C at any time to quit.
+package name: (npm-package) # Enterキー 
+version: (1.0.0) # Enterキー 
+description: # Enterキー 
+entry point: (index.js) # Enterキー 
+test command: # Enterキー 
+git repository: # Enterキー 
+keywords: # Enterキー 
+author: # Enterキー 
+license: (ISC) # Enterキー 
+About to write to /path/to/npm-package/package.json:
+
+{
+  "name": "npm-package",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}
+
+
+Is this OK? (yes) # Enterキー 
+
+
+/** SHELL **/
+$ npm version 1.1.0 
+v1.1.0
+$ npm version patch 
+v1.1.1
+
+
+/** SHELL **/
+$ git init  # Gitリポジトリの初期化
+Initialized empty Git repository in /path/to/npm-package/.git/
+$ npm version minor -m "%sにバージョンアップ" 
+v1.2.0
+$ git log -1 --oneline  # Gitのコミットとタグの確認
+e05bdc6 (HEAD -> master, tag: v1.2.0) 1.2.0にバージョンアップ
+
+
+/** SHELL **/
+$ git tag v1.3.0 -m '1.3.0' 
+$ npm version from-git 
+v1.3.0
+
+
+/** SHELL **/
+$ npm version premajor 
+v2.0.0-0
+$ npm version prerelease 
+v2.0.0-1 # プレリリースバージョンの数字が更新される
+
+
+/** SHELL **/
+$ npm version premajor --preid=alpha 
+v3.0.0-alpha.0
+$ npm version prerelease 
+v3.0.0-alpha.1
+
+
+/** SHELL **/
+$ npm version patch 
+v3.0.0
+
+
+/** npm-package/index.js **/
+'use strict'
+module.exports = 'Hello from my package'
+
+
+/** REPL **/
+> require('./npm-package') 
+'Hello from my package'
+
+
+/** json **/
+{
+  "author": {
+    "name" : "Barney Rubble",
+    "email" : "b@rubble.com",
+    "url" : "http://barnyrubble.tumblr.com/"
+  }
+}
+
+
+/** json **/
+{
+  "author": "Barney Rubble <b@rubble.com> (http://barnyrubble.tumblr.com/)"
+}
+
+
+/** json **/
+{
+  "license": "UNLICENSED",
+  "private": true
+}
+
+
+/** SHELL **/
+$ npm install rimraf 
+
+
+/** REPL **/
+> require('rimraf') 
+[Function: rimraf] { sync: [Function: rimrafSync] }
+
+
+/** json **/
+{
+  // ...
+  "dependencies": {
+    "rimraf": "^2.6.3"
+  },
+  // ...
+}
+
+
+/** json **/
+{
+  "dependencies": {
+    "a" : ">1.0.2 <=2.3.4"
+  }
+}
+
+
+/** json **/
+{
+  "dependencies": {
+    "b": "1.1", // >=1.1.0 <1.2.0
+    "c": "1", // >=1.0.0 <2.0.0
+    "d": "" // >=0.0.0（あらゆるバージョン）
+  }
+}
+
+
+/** json **/
+{
+  "dependencies": {
+    "e": "~1.2.3", // >=1.2.3 <1.3.0
+    "f": "~0.2.3" // >=0.2.3 <0.3.0
+  }
+}
+
+
+/** rimrafバージョン2.6.3のpackage.jsonのdependencies **/
+{
+  // ...
+  "dependencies": {
+    "glob": "^7.1.3"
+  },
+  // ...
+}
+
+
+/** SHELL **/
+$ npm ls --all 
+npm-package@3.0.0 /path/to/npm-package
+└─┬ rimraf@2.6.3
+　　└─┬ glob@7.1.3
+　　　　├── fs.realpath@1.0.0
+　　　　├─┬ inflight@1.0.6
+　　　　│　├── once@1.4.0 deduped
+　　　　│　└── wrappy@1.0.2
+　　　　├── inherits@2.0.3
+　　　　├─┬ minimatch@3.0.4
+　　　　│　└─┬ brace-expansion@1.1.11
+　　　　│　　　├── balanced-match@1.0.0
+　　　　│　　　└── concat-map@0.0.1
+　　　　├─┬ once@1.4.0
+　　　　│　└── wrappy@1.0.2 deduped
+　　　　└── path-is-absolute@1.0.1
+
+
+/** SHELL **/
+$ npm install inherits@^1.0.0 
+
+
+/** SHELL **/
+$ npm ls --all 
+npm-package@3.0.0 /path/to/npm-package
+├── inherits@1.0.2
+└─┬ rimraf@2.6.3
+　　└─┬ glob@7.1.3
+　　　　├── fs.realpath@1.0.0
+　　　　├─┬ inflight@1.0.6
+　　　　│　├── once@1.4.0 deduped
+　　　　│　└── wrappy@1.0.2
+　　　　├── inherits@2.0.3
+　　　　├─┬ minimatch@3.0.4
+　　　　│　└─┬ brace-expansion@1.1.11
+　　　　│　　　├── balanced-match@1.0.0
+　　　　│　　　└── concat-map@0.0.1
+　　　　├─┬ once@1.4.0
+　　　　│　└── wrappy@1.0.2 deduped
+　　　　└── path-is-absolute@1.0.1
+
+
+/** json **/
+{
+  // ...
+  "rimraf": {
+    "version": "2.6.3",
+    "resolved": "https://registry.npmjs.org/rimraf/-/rimraf-2.6.3.tgz",
+    "integrity": "sha512-mwqeW5XsA2qAejG46gYdENaxXjx9onRNCfn7L0duuP4hCuTIi/QO7P
+DK07KJfp1d+izWPrzEJDcSqBa0OZQriA==",
+    "requires": {
+      "glob": "^7.1.3"
+    }
+  },
+  // ...
+}
+
+
+/** rimrafバージョン2.6.3のpackage.jsonのdevDependencies **/
+{
+  // ...
+  "devDependencies": {
+    "mkdirp": "^0.5.1",
+    "tap": "^12.1.1"
+  },
+  // ...
+}
+
+
+/** SHELL **/
+$ npm install --save-dev mkdirp 
+
+
+/** plugin-aのpackage.json **/
+{
+  "name": "plugin-a",
+  "dependencies": {
+    "lib1": "^1.0.0"
+  }
+}
+
+
+/** plugin-bのpackage.json **/
+{
+  "name": "plugin-b",
+  "dependencies": {
+    "lib1": "^2.0.0"
+  }
+}
+
+
+/** --- **/
+node_modules
+├── lib1@2.0.0
+├─┬ plugin-a
+│　└── lib1@1.0.0
+└── plugin-b
+
+
+/** --- **/
+node_modules
+├── plugin-a
+└── plugin-b
+
+
+/** json **/
+{
+  "bundledDependencies": [
+    "rimraf"
+  ]
+}
+
+
+/** SHELL **/
+$ npm test 
+
+> npm-package@3.0.0 test /path/to/npm-package
+> echo "Error: no test specified" && exit 1
+
+Error: no test specified
+# ... （省略）
+
+
+/** json **/
+{
+  "scripts": {
+    "create-dir": "mkdirp foo/bar",
+    "remove-dir": "rimraf foo"
+  }
+}
+
+
+/** SHELL **/
+$ npm run create-dir 
+
+> npm-package@3.0.0 create-dir /path/to/npm-package
+> mkdirp foo/bar
+
+# npm-package/foo/barディレクトリが作成される
+$ npm run remove-dir 
+
+> npm-package@3.0.0 remove-dir /path/to/npm-package
+> rimraf foo
+
+# npm-package/fooディレクトリが削除される
+
+
+/** SHELL **/
+$ npm run create-dir -- baz 
+
+> npm-package@3.0.0 create-dir /path/to/npm-package
+> mkdirp foo/bar "baz"
+
+# npm-package/foo/barディレクトリとnpm-package/bazディレクトリが作成される
+
+
+/** json **/
+{
+  "scripts": {
+    "precreate-dir": "echo \"ディレクトリを作成します\"",
+    "create-dir": "mkdirp foo/bar",
+    "postcreate-dir": "echo \"ディレクトリを作成しました\"",
+    "remove-dir": "rimraf foo"
+  }
+}
+
+
+/** SHELL **/
+$ npm run create-dir 
+
+> npm-package@3.0.0 precreate-dir /path/to/npm-package
+> echo "ディレクトリを作成します"
+
+ディレクトリを作成します
+
+> npm-package@3.0.0 create-dir /path/to/npm-package
+> mkdirp foo/bar
+
+> npm-package@3.0.0 postcreate-dir /path/to/npm-package
+> echo "ディレクトリを作成しました"
+
+ディレクトリを作成しました
+
+
+/** json **/
+{
+  "scripts": {
+    "prepublishOnly": "npm test"
+  }
+}
+
+
+/** json **/
+{
+  // ...
+  "scripts": {
+    // ...
+    "prepare: ""echo \"prepareを実行しました\""
+  },
+  // ...
+}
+
+
+/** SHELL **/
+$ npm install 
+
+> npm-package@3.0.0 prepare /path/to/npm-package
+> echo "prepareを実行しました"
+
+prepareを実行しました
+# ... （省略）
+
+
+/** SHELL **/
+$ npm run prepare 
+
+> npm-package@3.0.0 prepare /path/to/npm-package
+> echo "prepareを実行しました"
+
+prepareを実行しました
+
+
+/** rimrafバージョン2.6.3のpackage.jsonのbin **/
+{
+  // ...
+  "bin": {
+    "rimraf": "./bin.js"
+  },
+  // ...
+}
+
+
+/** json **/
+{
+  "bin": "./bin.js"
+}
+
+
+/** npm-package/greeting.js **/
+#!/usr/bin/env node
+'use strict'
+
+// process.argvの確認
+console.log('******************** DEBUG ********************')
+console.log(process.argv)
+console.log('******************** DEBUG ********************')
+
+// process.argvはNode.js自体の実行可能ファイルへのパスと
+// greetingへのパスで始まるため、3番目以降の文字列を取り出して処理
+process.argv.slice(2).forEach(name => console.log(`Hello ${name}!`))
+
+
+/** json **/
+{
+  // ...
+  "bin": {
+    "greeting": "./greeting.js"
+  },
+  // ...
+}
+
+
+/** SHELL **/
+# another-packageをnpmパッケージとして初期化
+$ npm init -y 
+# ... （省略）
+# npm-packageのインストール
+$ npm install ../npm-package 
+# ... （省略）
+
+
+/** json **/
+{
+  // ...
+  "scripts": {
+    "greeting": "greeting"
+  },
+  // ...
+}
+
+
+/** SHELL **/
+$ npm run greeting 太郎 次郎 
+
+> another-package@1.0.0 greeting /path/to/another-package
+> greeting "太郎" "次郎"
+
+******************** DEBUG ********************
+[ '/path/to/bin/node',
+  '/path/to/another-package/node_modules/.bin/greeting',
+  '太郎',
+  '次郎' ]
+******************** DEBUG ********************
+Hello 太郎!
+Hello 次郎!
+
+
+/** SHELL **/
+$ npx greeting 太郎 次郎 
+******************** DEBUG ********************
+[ '/path/to/bin/node',
+  '/path/to/another-package/node_modules/.bin/greeting',
+  '太郎',
+  '次郎' ]
+******************** DEBUG ********************
+Hello 太郎!
+Hello 次郎!
+
+
+/** json **/
+{
+  "repository": {
+    "type" : "git",
+    "url" : "https://github.com/npm/cli.git"
+  }
+}
+
+
+/** json **/
+{
+  "repository": {
+    "type" : "git",
+    "url" : "https://github.com/facebook/react.git",
+    "directory": "packages/react-dom"
+  }
+}
+
+
+/** json **/
+{
+  "engines": {
+    "node" : ">=10",
+    "npm" : "^6.0.0"
+  }
+}
+
+
+/** SHELL **/
+# engine-strictをtrueに設定
+$ npm config set engine-strict true 
+
+
+/** SHELL **/
+# key=valueをユーザー単位のnpmrcファイルに書き込む
+$ npm config set key value 
+# key=trueをユーザー単位のnpmrcファイルに書き込む
+$ npm config set key 
+# keyの設定をユーザー単位のnpmrcファイルから削除する
+$ npm config delete key 
+# グローバルなnpmrcファイルへの設定は--globalまたは-gオプションを付ける
+$ npm config set key value --global 
+
+
+/** pkg-a@1.0.0のpackage.json **/
+{
+  "name": "pkg-a",
+  "version": "1.0.0",
+  "engines": {
+    // Node.js v10以上をサポート
+    "node": ">=10"
+  }
+}
+
+
+/** pkg-a@2.0.0のpackage.json **/
+{
+  "name": "pkg-a",
+  "version": "2.0.0",
+  "engines": {
+    // Node.js v12以上をサポート
+    "node": ">=12"
+  }
+}
+
+
+/** pkg-bのpackage.json **/
+{
+  "name": "pkg-b",
+  "engines": {
+    // Node.js v10以上をサポート
+    "node": ">=10"
+  },
+  "dependenices": {
+    // dependenicesではNode.js v10をサポート可能なpkg-aのバージョンを指定
+    "pkg-a": "^1.0.0"
+  },
+  "acceptDependencies": {
+    // pkg-a@2.0.0を利用可能な環境ならpkg-bもそれを使えることを、
+    // acceptDependenciesで表現
+    "pkg-a": "^2.0.0"
+  }
+}
+
+
+/** --- **/
+my-package /path/to/my-package
+├── pkg-a@2.0.0
+└─┬ pkg-b
+　　└── pkg-a@1.0.0 # 異なるバージョンのpkg-aが重複してインストールされてしまう
+
+
+/** --- **/
+my-package /path/to/my-package
+├── pkg-a@2.0.0
+└─┬ pkg-b
+　　└── pkg-a@2.0.0 deduped
+
+
+/** --- **/
+pkg/
+  package.json # "main": "index.js"
+  index.js # require('pkg')でロードされる
+  sub.js # require('pkg/sub')でロードされる
+
+
+/** json **/
+{
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js" // mainフィールドのモジュールを指定
+  }
+  // または、次のように短縮可能
+  // "exports": "./index.js"
+}
+
+
+/** json **/
+{
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",      // mainフィールドのモジュールを指定
+    "./sub": "./lib/sub.js" // それ以外に公開したいモジールを追加
+  }
+}
+
+
+/** json **/
+{
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    // キーと値の末尾に"/"をつけて、ディレクトリ単位でモジュールを公開する
+    "./features/": "./src/features/"
+  }
+}
+
+
+/** json **/
+{
+  // exports未対応の環境では./main.jsが、
+  // 未対応の環境では./index.jsがエントリポイントになる
+  "main": "main.js",
+  "exports": "./index.js"
+}
+
+
+/** json **/
+{
+  "jest": {
+    "testMatch": ["**/test/jest/**/*.js"],
+    "clearMocks": true,
+    "restoreMocks": true
+  }
+}
+
+
+/** .npmignore、.gitignoreの書式@<fn>{ignore-file-format} **/
+# 拡張子が.aの全ファイルを除外
+*.a
+
+# ただし、lib.aは除外しない
+!lib.a
+
+# 現在のディレクトリに存在するTODOファイルを除外するが、
+# サブディレクトリのTODOファイルはしない
+/TODO
+
+# buildという名前のディレクトリに存在するすべてのファイルを除外
+build/
+
+# docディレクトリ直下の.txtファイルを除外するが、
+# そのサブディレクトリの.txtファイルは除外しない
+doc/*.txt
+
+# サブディレクトリの中にあるものも含め、
+# docディレクトリの中にあるすべての.pdfファイルを除外
+doc/**/*.pdf
+
+
+/** json **/
+{
+  "files": [
+    "foo.js",
+    "bar",
+    "baz/**/*.txt"
+  ]
+}
+
+
+/** SHELL **/
+$ npx cowsay こんにちは 
+# npmのバージョンがv7の場合、初回のnpx cowsay実行時に次のように
+# cowsayのインストール可否を問われる（v6ではこのステップはない）
+Need to install the following packages:
+  loadtest
+Ok to proceed? (y) # エンターキーを押す
+ ____________
+< こんにちは >
+ ------------
+        \   ^__^
+         \  (oo)\_______
+            (__)\       )\/\
+                ||----w |
+                ||     ||
+
+
+/** SHELL **/
+# インストール済みのgreetingを実行したかったが、タイプミスにより
+# 由来不明のgreetngを（それがnpmレジストリにあれば）実行しようとする.
+# このとき、v6ではインストール可否の確認のステップがない.
+$ npx greetng 
+
+
+/** SHELL **/
+# インストール可否の確認をスキップ
+$ npx --yes greeting 
+
+
+/** SHELL **/
+$ npm adduser 
+Username: # ユーザー名の入力
+Password: # パスワードの入力
+Email: (this IS public) # メールアドレスの入力
+
+
+/** SHELL **/
+$ npm init -y 
+Wrote to /path/to/fizzbuzz/package.json:
+
+{
+  "name": "fizzbuzz",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
+
+
+/** json **/
+{
+  // "name": "fizzbuzz",を書き換え
+  "name": "@kimamula/fizzbuzz",
+  // ...
+}
+
+
+/** fizzbuzz/index.js **/
+'use strict'
+module.exports = function (num) {
+  if (num % 3 === 0) {
+    return 'Fizz'
+  }
+  if (num % 5 === 0) {
+    return 'Buzz'
+  }
+  if (num % 15 === 0) {
+    return 'FizzBuzz'
+  }
+  return String(num)
+}
+
+
+/** json **/
+{
+  // ...
+  "bin": "bin.js",
+  // ...
+}
+
+
+/** fizzbuzz/bin.js **/
+#!/usr/bin/env node
+'use strict'
+
+const arg = process.argv[2]
+const num = Number(arg)
+// Number.isNaN()で数値が渡されたかどうかをチェック
+if (Number.isNaN(num)) {
+  throw new Error(`${arg} is not a number`)
+}
+console.log(require('.')(num))
+
+
+/** fizzbuzz/test.js **/
+'use strict'
+const { strictEqual } = require('assert')
+const fizzbuzz = require('.')
+
+strictEqual(fizzbuzz(1), '1')
+strictEqual(fizzbuzz(2), '2')
+strictEqual(fizzbuzz(3), 'Fizz')
+strictEqual(fizzbuzz(4), '4')
+strictEqual(fizzbuzz(5), 'Buzz')
+strictEqual(fizzbuzz(6), 'Fizz')
+strictEqual(fizzbuzz(7), '7')
+strictEqual(fizzbuzz(8), '8')
+strictEqual(fizzbuzz(9), 'Fizz')
+strictEqual(fizzbuzz(10), 'Buzz')
+strictEqual(fizzbuzz(11), '11')
+strictEqual(fizzbuzz(12), 'Fizz')
+strictEqual(fizzbuzz(13), '13')
+strictEqual(fizzbuzz(14), '14')
+strictEqual(fizzbuzz(15), 'FizzBuzz')
+strictEqual(fizzbuzz(16), '16')
+
+
+/** json **/
+{
+  // ...
+  "scripts": {
+    // "test": "echo \"Error: no test specified\" && exit 1"を書き換え
+    "test": "node test",
+    "prepublishOnly": "npm test"
+  },
+  // ...
+}
+
+
+/** SHELL **/
+$ npm test 
+
+> @kimamula/fizzbuzz@1.0.0 test /path/to/fizzbuzz
+> node test
+
+assert.js:86
+  throw new AssertionError(obj)
+  ^
+
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
++ actual - expected
+
++ 'Fizz'
+- 'FizzBuzz'
+       ^
+
+
+/** fizzbuzz/README **/
+# fizzbuzz
+
+A JavaScript implementation of FizzBuzz.
+
+## Installation
+
+```sh
+$ npm install @kimamula/fizzbuzz
+```　
+
+## Usage
+
+### In JavaScript code
+
+```js
+const fizzbuzz = require('@kimamula/fizzbuzz')
+
+fizzbuzz(1) // '1'
+fizzbuzz(2) // '2'
+fizzbuzz(3) // 'Fizz'
+fizzbuzz(5) // 'Buzz'
+fizzbuzz(15) // 'FizzBuzz'
+```　
+
+### From the command line
+
+```sh
+$ npx fizzbuzz 1
+1
+$ npx fizzbuzz 2
+2
+$ npx fizzbuzz 3
+Fizz
+$ npx fizzbuzz 5
+Buzz
+$ npx fizzbuzz 15
+FizzBuzz
+```　
+
+
+/** json **/
+{
+  // ...
+  "author": "Kenji Imamula <kenji.imamula@gmail.com>",
+  "license": "MIT"
+}
+
+
+/** fizzbuzz/LICENSE **/
+Copyright (c) 2020 Kenji Imamula
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+
+/** fizzbuzz/.npmignore **/
+test.js
+
+
+/** パッケージ公開時点でのfizzbuzz/package.json **/
+{
+  "name": "@kimamula/fizzbuzz",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "bin": "bin.js",
+  "scripts": {
+    "test": "node test",
+    "prepublishOnly": "npm test"
+  },
+  "keywords": [],
+  "author": "Kenji Imamula <kenji.imamula@gmail.com>",
+  "license": "MIT"
+}
+
+
+/** SHELL **/
+$ npm publish --access public 
+
+> @kimamula/fizzbuzz@1.0.0 prepublishOnly .
+> npm test
+
+
+> @kimamula/fizzbuzz@1.0.0 test /path/to/fizzbuzz
+> node test
+
+assert.js:86
+  throw new AssertionError(obj)
+  ^
+
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
++ actual - expected
+
++ 'Fizz'
+- 'FizzBuzz'
+       ^
+
+
+/** fizzbuzz/index.js **/
+'use strict'
+module.exports = function (num) {
+  // FizzBuzzの判定を先頭に移動する
+  if (num % 15 === 0) {
+    return 'FizzBuzz'
+  }
+  if (num % 3 === 0) {
+    return 'Fizz'
+  }
+  if (num % 5 === 0) {
+    return 'Buzz'
+  }
+  return String(num)
+}
+
+
+/** SHELL **/
+$ npm test 
+
+> @kimamula/fizzbuzz@1.0.0 test /path/to/fizzbuzz
+> node test
+
+
+/** SHELL **/
+$ npm publish --access public 
+
+> @kimamula/fizzbuzz@1.0.0 prepublishOnly .
+> npm test
+
+
+> @kimamula/fizzbuzz@1.0.0 test /path/to/fizzbuzz
+> node test
+
+npm notice
+npm notice 📦  @kimamula/fizzbuzz@1.0.0
+npm notice === Tarball Contents ===
+npm notice 289B  package.json
+npm notice 178B  bin.js
+npm notice 248B  index.js
+npm notice 1.1kB LICENSE
+npm notice 475B  README
+npm notice === Tarball Details ===
+npm notice name:          @kimamula/fizzbuzz
+npm notice version:       1.0.0
+npm notice package size:  1.5 kB
+npm notice unpacked size: 2.2 kB
+npm notice shasum:        c455a46b041856e0d23a9de1ae93a179d1f60640
+npm notice integrity:     sha512-UBmKVh2uQjDa8[...]Wa0Lm4k8vVRMQ==
+npm notice total files:   5
+npm notice
++ @kimamula/fizzbuzz@1.0.0
+
+
+/** SHELL **/
+$ npm install @kimamula/fizzbuzz 
+# ... （省略）
++ @kimamula/fizzbuzz@1.0.0
+$ npx fizzbuzz 1 
+1
+$ npx fizzbuzz 2 
+2
+$ npx fizzbuzz 3 
+Fizz
+$ npx fizzbuzz 5 
+Buzz
+$ npx fizzbuzz 15 
+FizzBuzz
+
+
+/** REPL **/
+> const fizzbuzz = require('@kimamula/fizzbuzz') 
+undefined
+> fizzbuzz(1) 
+'1'
+> fizzbuzz(2) 
+'2'
+> fizzbuzz(3) 
+'Fizz'
+> fizzbuzz(5) 
+'Buzz'
+> fizzbuzz(15) 
+'FizzBuzz'
+
+
+/** json **/
+{
+  "engines": {
+    "node" : ">=10",
+    "yarn": "^1.12.0"
+  }
+}
+
+
+/** monorepo/package.json **/
+{
+  "private": true,
+  "workspaces": ["package-a", "package-b"]
+}
+
+
+/** SHELL **/
+# package-aをnpmパッケージとして初期化
+$ yarn init -y 
+# ... （省略）
+# rimrafのインストール
+$ yarn add rimraf 
+# ... （省略）
+
+
+/** SHELL **/
+# package-bをnpmパッケージとして初期化
+$ yarn init -y 
+# ... （省略）
+# rimrafのインストール
+$ yarn add rimraf 
+# ... （省略）
+
+
+/** monorepo/package-b/package.json **/
+{
+  "name": "package-b",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "rimraf": "^2.6.3",
+    "package-a": "^1.0.0"
+  }
+}
+
+
+/** SHELL **/
+$ yarn set version berry 
+
+
+/** yml **/
+nodeLinker: node-modules
+
+
+/** SHELL **/
+$ yarn workspaces foreach run build 
+
+
+/** yml **/
+releases:
+  my-package@1.0.0: minor
+
+
+/** json **/
+{
+  "dependencies": {
+    "rimraf": "patch:rimraf@2.0.0#./my-patch.patch",
+    "my-local-package": "portal:./pkgs/my-local-package"
+  }
+}
+
+
+/** json **/
+{
+  "scripts": {
+    "hello": "echo \"Hello $@\""
+  }
+}
+
+
+/** SHELL **/
+$ yarn hello World 
+# "$@"の部分がコマンドライン引数（"World"）に置き換わる
+Hello World
+
+
+/** SHELL **/
+# インストール済みのgreetingを実行（タイプミスした場合は失敗する）
+$ yarn greeting  # or yarn run greeting
+# 未インストールのgreetingを実行
+$ yarn dlx greeting 

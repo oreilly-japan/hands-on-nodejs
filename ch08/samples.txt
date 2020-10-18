@@ -1,0 +1,1253 @@
+// 8章に登場するサンプルコード
+
+/** SHELL **/
+$ npm install -D mocha chai sinon nyc 
+
+
+/** Mochaによるテストの構造 **/
+// テスト対象の機能ごとにテストケースをまとめる
+describe('xxxモジュール', () => {
+  // フック（before()、after()、beforeEach()、afterEach()）の記述
+  before(() => {
+    // テストの事前準備
+  })
+  beforeEach(() => {
+    // テストケースごとの事前準備
+  })
+  after(() => {
+    // テストの後片づけ
+  })
+  afterEach(() => {
+    // テストケースごとの後片づけ
+  })
+  // テストケースの記述
+  it('xxxにxxxをセットするとxxxがxxxになる', () => {
+    // テスト対象の機能の実行、結果のアサーション
+  })
+  // describeはネストできる
+  describe('xxx関数', () => {
+    // フックはネストされたdescribeの中にも記述できる
+    beforeEach(() => {
+      // テストケースごとの事前準備
+    })
+    // ...
+    // テストケースの記述
+    it('xxxを引数に実行するとxxxを返す', () => {
+      // テスト対象の機能の実行、結果のアサーション
+    })
+  })
+})
+
+
+/** js **/
+describe('fs', () => {
+  describe('writeFile', () => {
+    it('エラーなしで実行できる', done => {
+      fs.writeFile(
+        'hello.txt',
+        'Hello world',
+        err => err ? done(err) : done()
+      )
+      // またはよりシンプルに、
+      // fs.writeFile('hello.txt', 'Hello world', done)
+    })
+  })
+})
+
+
+/** js **/
+describe('fs.promises', () => {
+  describe('writeFile', () => {
+    it('エラーなしで実行できる', () => {
+      return fs.promises.writeFile('hello.txt', 'Hello world')
+    })
+  })
+})
+
+
+/** js **/
+describe('fs.promises', () => {
+  describe('writeFile', () => {
+    it('エラーなしで実行できる', async () => {
+      await fs.promises.writeFile('hello.txt', 'Hello world')
+    })
+  })
+})
+
+
+/** assertによるアサーション **/
+const { assert } = require('chai')
+
+const obj = {
+  foo: 'foo',
+  bar: 1
+}
+
+// ===による等価性の評価
+assert.strictEqual(obj.foo, 'foo')
+// オブジェクトの中身の深い比較による等価性の評価
+assert.deepEqual(obj, {
+  foo: 'foo',
+  bar: 1
+})
+
+
+/** expectによるアサーション **/
+const { expect } = require('chai')
+
+const obj = {
+  foo: 'foo',
+  bar: 1
+}
+
+// ===による等価性の評価
+expect(obj.foo).to.equal('foo')
+// オブジェクトの中身の深い比較による等価性の評価
+expect(obj).to.deep.equal({
+  foo: 'foo',
+  bar: 1
+})
+
+
+/** shouldによるアサーション **/
+const should = require('chai').should()
+
+const obj = {
+  foo: 'foo',
+  bar: 1
+}
+
+// ===による等価性の評価
+obj.foo.should.equal('foo')
+// オブジェクトの中身の深い比較による等価性の評価
+obj.should.deep.equal({
+  foo: 'foo',
+  bar: 1
+})
+
+
+/** shouldによるnullに対するアサーション **/
+const should = require('chai').should()
+
+const nullValue = null
+
+should.not.exist(nullValue)
+
+// 参考: assertやexpectを使う場合
+const { assert, expect } = require('chai')
+assert.isNull(nullValue)
+expect(nullValue).to.be.null
+
+
+/** todo-data-storage/package.json **/
+{
+  // ...
+  "mocha": {
+    "spec": "test/mocha/**/*.js"
+  },
+  // ...
+}
+
+
+/** todo-data-storage/test/mocha/data-storage.js **/
+'use strict'
+const { assert } = require('chai')
+
+// 各データストレージに対するテストをまとめて記述
+for (const dataStorageName of ['file-system', 'sqlite', 'leveldb']) {
+  const { fetchAll, fetchByCompleted, create, update, remove } =
+    require(`../../${dataStorageName}`)
+
+  describe(dataStorageName, () => {
+    // 毎回のテスト実行前にすべてのToDoを削除
+    beforeEach(async () => {
+      const allTodos = await fetchAll()
+      await Promise.all(allTodos.map(({ id }) => remove(id)))
+    })
+
+    describe('create()、fetchAll()', () => {
+      it('create()で作成したToDoをfetchAll()で取得できる', async () => {
+        // 初期状態の確認
+        assert.deepEqual(await fetchAll(), [])
+
+        // ToDoを1件追加
+        const todo1 = { id: 'a', title: 'ネーム', completed: false }
+        await create(todo1)
+        assert.deepEqual(await fetchAll(), [todo1])
+
+        // ToDoをさらに2件追加
+        const todo2 = { id: 'b', title: '下書き', completed: true }
+        await create(todo2)
+        const todo3 = { id: 'c', title: 'ペン入れ', completed: false }
+        await create(todo3)
+        // 順序を無視した配列の比較
+        assert.sameDeepMembers(await fetchAll(), [todo1, todo2, todo3])
+      })
+    })
+  })
+}
+
+
+/** SHELL **/
+$ npx mocha 
+
+
+  file-system
+    create()、fetchAll()
+      ✓ create()で作成したToDoをfetchAll()で取得できる
+
+  sqlite
+    create()、fetchAll()
+      ✓ create()で作成したToDoをfetchAll()で取得できる
+
+  leveldb
+    create()、fetchAll()
+      ✓ create()で作成したToDoをfetchAll()で取得できる
+
+
+  3 passing (40ms)
+
+
+/** fetchByCompleted()のテスト（Mocha） **/
+    // create()、fetchAll()のテストのあとに次のコードを追加
+    describe('fetchByCompleted()', () => {
+      it(
+        'completedの値が引数で指定したものと等しいToDoだけを取得できる',
+        async() => {
+          // 初期状態の確認
+          assert.deepEqual(await fetchByCompleted(true), [])
+          assert.deepEqual(await fetchByCompleted(false), [])
+
+          // ToDoを3件追加
+          const todo1 = { id: 'a', title: 'ネーム', completed: false }
+          await create(todo1)
+          const todo2 = { id: 'b', title: '下書き', completed: true }
+          await create(todo2)
+          const todo3 = { id: 'c', title: 'ペン入れ', completed: false }
+          await create(todo3)
+
+          // fetchByCompletedの結果を確認
+          assert.deepEqual(await fetchByCompleted(true), [todo2])
+          assert.sameDeepMembers(
+            await fetchByCompleted(false),
+            [todo1, todo3]
+          )
+        }
+      )
+    })
+    // ...
+
+
+/** update()のテスト（Mocha） **/
+    // fetchByCompleted()のテストのあとに次のコードを追加
+    describe('update()', () => {
+      const todo1 = { id: 'a', title: 'ネーム', completed: false }
+      const todo2 = { id: 'b', title: '下書き', completed: false }
+
+      beforeEach(async () => {
+        await create(todo1)
+        await create(todo2)
+      })
+
+      it('指定したIDのToDoを更新し、更新後のToDoを返す', async () => {
+        // todo1のcompletedを更新
+        assert.deepEqual(
+          await update('a', { completed: true }),
+          { id: 'a', title: 'ネーム', completed: true }
+        )
+        assert.deepEqual(
+          await fetchByCompleted(true),
+          [{ id: 'a', title: 'ネーム', completed: true }]
+        )
+        assert.deepEqual(await fetchByCompleted(false), [todo2])
+
+        // todo2のtitleを更新
+        assert.deepEqual(
+          await update('b', { title: 'ペン入れ' }),
+          { id: 'b', title: 'ペン入れ', completed: false }
+        )
+        assert.deepEqual(
+          await fetchByCompleted(true),
+          [{ id: 'a', title: 'ネーム', completed: true }]
+        )
+        assert.deepEqual(
+          await fetchByCompleted(false),
+          [{ id: 'b', title: 'ペン入れ', completed: false }]
+        )
+      })
+
+      it('存在しないIDを指定するとnullを返す', async () => {
+        assert.isNull(await update('c', { completed: true }))
+        assert.deepEqual(await fetchByCompleted(true), [])
+        assert.sameDeepMembers(await fetchByCompleted(false), [todo1, todo2])
+      })
+    })
+    // ...
+
+
+/** remove()のテスト（Mocha） **/
+    // update()のテストのあとに次のコードを追加
+    describe('remove()', () => {
+      const todo1 = { id: 'a', title: 'ネーム', completed: false }
+      const todo2 = { id: 'b', title: '下書き', completed: false }
+
+      beforeEach(async () => {
+        await create(todo1)
+        await create(todo2)
+      })
+
+      it('指定したIDのToDoを削除する', async () => {
+        assert.strictEqual(await remove('b'), 'b')
+        assert.deepEqual(await fetchAll(), [todo1])
+      })
+
+      it('存在しないIDを指定するとnullを', async () => {
+        assert.strictEqual(await remove('c'), null)
+        assert.sameDeepMembers(await fetchAll(), [todo1, todo2])
+      })
+    })
+    // ...
+
+
+/** SHELL **/
+$ npx mocha 
+
+
+  file-system
+    create()、fetchAll()
+      ✓ create()で作成したToDoをfetchAll()で取得できる
+    fetchByCompleted()
+      ✓ completedの値が引数で指定したものと等しいToDoだけを取得できる
+    update()
+      ✓ 指定したIDのToDoを更新し、更新後のToDoを返す
+      ✓ 存在しないIDを指定するとnullを返す
+    remove()
+      ✓ 指定したIDのToDoを削除する
+      ✓ 存在しないIDを指定するとnullを返す
+
+  sqlite
+    create()、fetchAll()
+      ✓ create()で作成したToDoをfetchAll()で取得できる
+    fetchByCompleted()
+      ✓ completedの値が引数で指定したものと等しいToDoだけを取得できる
+    update()
+      ✓ 指定したIDのToDoを更新し、更新後のToDoを返す
+      ✓ 存在しないIDを指定するとnullを返す
+    remove()
+      ✓ 指定したIDのToDoを削除する
+      ✓ 存在しないIDを指定するとnullを返す
+
+  leveldb
+    create()、fetchAll()
+      ✓ create()で作成したToDoをfetchAll()で取得できる
+    fetchByCompleted()
+      ✓ completedの値が引数で指定したものと等しいToDoだけを取得できる
+    update()
+      1) 指定したIDのToDoを更新し、更新後のToDoを返す
+      ✓ 存在しないIDを指定するとnullを返す
+    remove()
+      ✓ 指定したIDのToDoを削除する
+      ✓ 存在しないIDを指定するとnullを返す
+
+
+  17 passing (219ms)
+  1 failing
+
+  1) leveldb
+       update()
+         指定したIDのToDoを更新し、更新後のToDoを返す:
+     AssertionError: expected undefined to deeply equal
+      { Object (id, title, ...) }
+      at Context.<anonymous> (test/mocha/data-storage.js:71:16)
+
+
+/** js **/
+        assert.deepEqual( // <- 71行目（16字目はdeepEqualのdの位置）
+          await update('a', { completed: true }),
+          { id: 'a', title: 'ネーム', completed: true }
+        )
+
+
+/** SHELL **/
+     AssertionError: expected undefined to deeply equal
+      { Object (id, title, ...) }
+
+
+/** REPL **/
+> const sinon = require('sinon') 
+undefined
+# console.log()のスパイを生成
+> sinon.spy(console, 'log') 
+[Function: log]
+# console.log()を実行
+> console.log('foo') 
+foo
+undefined
+# 正しいアサーション
+> sinon.assert.calledWith(console.log, 'foo') 
+undefined
+> sinon.assert.calledOnce(console.log) 
+undefined
+# 誤ったアサーション
+> sinon.assert.calledWith(console.log, 'bar') 
+Uncaught Error [AssertError]: expected log to be called with arguments
+foo bar
+# ... （省略）
+> sinon.assert.calledTwice(console.log) 
+Uncaught Error [AssertError]: expected log to be called twice but was called 
+once
+# ... （省略）
+
+
+/** REPL **/
+> const spy = sinon.spy() 
+undefined
+> setTimeout(spy, 0) 
+Timeout {
+  # ... （省略）
+> sinon.assert.calledOnce(spy) 
+undefined
+
+
+/** REPL **/
+# 常にtrueを返すString.prototype.startsWith()のスタブを生成
+> sinon.stub(String.prototype, 'startsWith').returns(true) 
+# ... （省略）
+> 'foo'.startsWith('f') 
+true
+> 'foo'.startsWith('x') 
+true
+# 正しいアサーション
+> sinon.assert.calledWith(String.prototype.startsWith, 'f') 
+undefined
+> sinon.assert.calledTwice(String.prototype.startsWith) 
+undefined
+# 誤ったアサーション
+> sinon.assert.calledWith(String.prototype.startsWith, 'y') 
+Uncaught Error [AssertError]: expected startsWith to be called with arguments
+# ... （省略）
+> sinon.assert.calledOnce(String.prototype.startsWith) 
+Uncaught Error [AssertError]: expected startsWith to be called once but was 
+called twice
+# ... （省略）
+
+
+/** REPL **/
+# 常にtrueを返すString.prototype.startsWith()のスタブを生成
+> sinon.stub(String.prototype, 'endsWith') 
+# ... （省略）
+> 'foo'.endsWith('o') 
+undefined
+
+
+/** REPL **/
+# JSON.parse()のモックを生成
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+const mock = sinon.mock(JSON).expects('parse') 
+  // '{ "foo": 1 }'という引数で1回以上2回以下実行されることを期待 
+  .withExactArgs('{ "foo": 1 }').atLeast(1).atMost(2) 
+  // 戻り値として{}を返す 
+  .returns({}) 
+
+// ctrl-D 
+undefined
+# この時点で確認すると、期待が満たされていないためエラーが投げられる
+> mock.verify() 
+Uncaught:
+Error [ExpectationError]: Expected parse({ "foo": 1 }) at least once and at 
+most twice (never called)
+# ... （省略）
+# 期待を満たす引数で実行
+> JSON.parse('{ "foo": 1 }') 
+{}
+# この時点では期待が満たされているためtrueが返される
+> mock.verify() 
+true
+# 期待に反する引数で実行
+> JSON.parse('{ "bar": 1 }') 
+Uncaught Error [ExpectationError]: Unexpected call: parse({ "bar": 1 })
+# ... （省略）
+# 期待を満たす引数で実行
+> JSON.parse('{ "foo": 1 }') 
+{}
+# 引数は期待を満たすものの、回数は期待に反する実行
+> JSON.parse('{ "foo": 1 }') 
+Uncaught Error [ExpectationError]: Unexpected call: parse({ "foo": 1 })
+# ... （省略）
+
+
+/** REPL **/
+> sinon.restore() 
+undefined
+
+
+/** SHELL **/
+$ npm install -D chai-http 
+
+
+/** todo-data-storage/app.jsの最終行の書き換え **/
+// ...
+// "module.exports = "を追加
+module.exports = app.listen(3000)
+
+
+/** todo-data-storage/test/mocha/app.js **/
+'use strict'
+const chai = require('chai')
+const sinon = require('sinon')
+const fileSystem = require('../../file-system')
+
+// ストレージとしてfile-systemの実装が使われるようにする
+process.env.npm_lifecycle_event = 'file-system'
+const app = require('../../app')
+
+// Sinon.JSのアサーションAPIをChaiのアサーションAPIを介して利用できるようにする
+const assert = chai.assert
+sinon.assert.expose(assert, { prefix: '' })
+
+// Chai HTTPプラグインの利用
+chai.use(require('chai-http'))
+
+// 毎回のテスト実行後にSinon.JSによる副作用を元に戻す
+afterEach(() => sinon.restore())
+
+
+/** GET /api/todosで「completed」が指定されていない場合のテスト（Mocha） **/
+// ...
+describe('app', () => {
+  describe('GET /api/todos', () => {
+    describe('completedが指定されていない場合', () => {
+      it('fetchAll()で取得したToDoの配列を返す', async () => {
+        const todos = [
+          { id: 'a', title: 'ネーム', completed: false },
+          { id: 'b', title: '下書き', completed: true }
+        ]
+        // スタブの生成
+        sinon.stub(fileSystem, 'fetchAll').resolves(todos)
+
+        // リクエストの送信
+        const res = await chai.request(app).get('/api/todos')
+
+        // レスポンスのアサーション
+        assert.strictEqual(res.status, 200)
+        assert.deepEqual(res.body, todos)
+      })
+      it('fetchAll()が失敗したらエラーを返す', async () => {
+        // スタブの生成
+        sinon.stub(fileSystem, 'fetchAll')
+          .rejects(new Error('fetchAll()失敗'))
+
+        // リクエストの送信
+        const res = await chai.request(app).get('/api/todos')
+
+        // レスポンスのアサーション
+        assert.strictEqual(res.status, 500)
+        assert.deepEqual(res.body, { error: 'fetchAll()失敗' })
+      })
+    })
+  })
+})
+
+
+/** GET /api/todosで「completed」が指定されている場合のテスト（Mocha） **/
+    // completedが指定されていない場合のテストのあとに次のコードを追加
+    describe('completedが指定されている場合', () => {
+      it(
+        'completedを引数にfetchByCompleted()を実行し取得したToDoの配列を返す',
+        async () => {
+          const todos = [
+            { id: 'a', title: 'ネーム', completed: false },
+            { id: 'b', title: '下書き', completed: true }
+          ]
+          // スタブの生成
+          sinon.stub(fileSystem, 'fetchByCompleted').resolves(todos)
+
+          for (const completed of [true, false]) {
+            // リクエストの送信
+            const res = await chai.request(app)
+              .get('/api/todos')
+              .query({ completed })
+
+            // レスポンスのアサーション
+            assert.strictEqual(res.status, 200)
+            assert.deepEqual(res.body, todos)
+            // fetchByCompleted()の引数のアサーション
+            assert.calledWith(fileSystem.fetchByCompleted, completed)
+          }
+        }
+      )
+      it('fetchByCompleted()が失敗したらエラーを返す', async () => {
+        // スタブの生成
+        sinon.stub(fileSystem, 'fetchByCompleted')
+          .rejects(new Error('fetchByCompleted()失敗'))
+
+        // リクエストの送信
+        const res = await chai.request(app)
+          .get('/api/todos')
+          .query({ completed: true })
+
+        // レスポンスのアサーション
+        assert.strictEqual(res.status, 500)
+        assert.deepEqual(res.body, { error: 'fetchByCompleted()失敗' })
+      })
+    })
+    // ...
+
+
+/** POST /api/todosのテスト（Mocha） **/
+  // GET /api/todosのテストのあとに次のコードを追加
+  describe('POST /api/todos', () => {
+    it(
+      'パラメータで指定したタイトルを引数にcreate()を実行し、結果を返す',
+      async () => {
+        // スタブの生成
+        sinon.stub(fileSystem, 'create').resolves()
+
+        // リクエストの送信
+        const res = await chai.request(app)
+          .post('/api/todos')
+          .send({ title: 'ネーム' })
+
+        // レスポンスのアサーション
+        assert.strictEqual(res.status, 201)
+        assert.strictEqual(res.body.title, 'ネーム')
+        assert.strictEqual(res.body.completed, false)
+        // create()の引数のアサーション
+        assert.calledWith(fileSystem.create, res.body)
+      }
+    )
+    it(
+      'パラメータにタイトルが指定されていない場合、400エラーを返す',
+      async () => {
+        // スパイの生成（実行されないはずなのでスタブである必要がない）
+        sinon.spy(fileSystem, 'create')
+
+        for (const title of ['', undefined]) {
+          // リクエストの送信
+          const res = await chai.request(app)
+            .post('/api/todos')
+            .send({ title })
+
+          // レスポンスのアサーション
+          assert.strictEqual(res.status, 400)
+          assert.deepEqual(res.body, { error: 'title is required' })
+          // create()が実行されていないことのアサーション
+          assert.notCalled(fileSystem.create)
+        }
+      }
+    )
+    it('create()が失敗したらエラーを返す', async () => {
+      // スタブの生成
+      sinon.stub(fileSystem, 'create').rejects(new Error('create()失敗'))
+
+      // リクエストの送信
+      const res = await chai.request(app)
+        .post('/api/todos')
+        .send({ title: 'ネーム' })
+
+      // レスポンスのアサーション
+      assert.strictEqual(res.status, 500)
+      assert.deepEqual(res.body, { error: 'create()失敗' })
+    })
+  })
+  // ...
+
+
+/** SHELL **/
+$ npx mocha 
+# ... （省略）
+24 passing (221ms)
+  1 failing
+
+  1) leveldb
+       update()
+         指定したIDのToDoを更新し、更新後のToDoを返す:
+     AssertionError: expected undefined to deeply equal { Object (id, title, ...) }
+      at Context.<anonymous> (test/mocha/data-storage.js:71:16)
+
+
+/** js **/
+sinon.stub(console, 'error')
+
+
+/** SHELL **/
+$ npx nyc mocha 
+
+
+/** js **/
+exports.update = async (id, update) => {
+  // ...
+    // ファイルが存在しない場合はnullを返し、それ以外はそのままエラーにする
+    err => err.code === 'ENOENT' ? null : Promise.reject(err) // <- 30行目
+  // ...
+}
+
+
+/** js **/
+dbRun(`CREATE TABLE IF NOT EXISTS todo (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  completed BOOLEAN NOT NULL
+)`).catch(err => {
+  // テーブル作成に失敗した場合はアプリケーションを終了
+  console.error(err) // -> 31行目
+  process.exit(1)    // -> 32行目
+})
+
+
+/** SHELL **/
+$ npx mocha --watch 
+
+
+/** SHELL **/
+$ npm install -D jest 
+
+
+/** Jestによるアサーション **/
+const obj = {
+  foo: 'foo',
+  bar: 1
+}
+
+// ===による等価性の評価
+expect(obj.foo).toBe('foo')
+// オブジェクトの中身の深い比較による等価性の評価
+expect(obj).toEqual({
+  foo: 'foo',
+  bar: 1
+})
+
+
+/** todo-data-storage/package.json **/
+{
+  // ...
+  "jest": {
+    "testMatch": ["**/test/jest/**/*.js"],
+    "clearMocks": true,
+    "restoreMocks": true
+  },
+  // ...
+}
+
+
+/** todo-data-storage/test/jest/data-storage.js **/
+'use strict'
+/** ID順にToDoをソート */
+function sortTodoById(todos) {
+  return todos.sort((a, b) => a.id > b.id ? 1 : -1)
+}
+
+// 各データストレージに対するテストをまとめて記述
+for (const dataStorageName of ['file-system', 'sqlite', 'leveldb']) {
+  const { fetchAll, fetchByCompleted, create, update, remove } =
+    require(`../../${dataStorageName}`)
+
+  describe(dataStorageName, () => {
+    // 毎回のテスト実行前にすべてのToDoを削除
+    beforeEach(async () => {
+      const allTodos = await fetchAll()
+      await Promise.all(allTodos.map(({ id }) => remove(id)))
+    })
+
+    describe('create()、fetchAll()', () => {
+      test('create()で作成したToDoをfetchAll()で取得できる', async () => {
+        // 初期状態の確認
+        expect(await fetchAll()).toEqual([])
+
+        // ToDoを1件追加
+        const todo1 = { id: 'a', title: 'ネーム', completed: false }
+        await create(todo1)
+        expect(await fetchAll()).toEqual([todo1])
+
+        // ToDoをさらに2件追加
+        const todo2 = { id: 'b', title: '下書き', completed: true }
+        await create(todo2)
+        const todo3 = { id: 'c', title: 'ペン入れ', completed: false }
+        await create(todo3)
+        expect(sortTodoById(await fetchAll())).toEqual([todo1, todo2, todo3])
+      })
+    })
+  })
+}
+
+
+/** SHELL **/
+$ npx jest 
+ PASS  test/jest/data-storage.js
+  file-system
+    create()、fetchAll()
+      ✓ create()で作成したToDoをfetchAll()で取得できる (16ms)
+  sqlite
+    create()、fetchAll()
+      ✓ create()で作成したToDoをfetchAll()で取得できる (8ms)
+  leveldb
+    create()、fetchAll()
+      ✓ create()で作成したToDoをfetchAll()で取得できる (10ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       3 passed, 3 total
+Snapshots:   0 total
+Time:        1.287s, estimated 2s
+Ran all test suites.
+
+
+/** fetchByCompleted()のテスト（Jest） **/
+    // create()、fetchAll()のテストのあとに次のコードを追加
+    describe('fetchByCompleted()', () => {
+      test(
+        'completedの値が引数で指定したものと等しいToDoだけを取得できる',
+        async() => {
+          // 初期状態の確認
+          expect(await fetchByCompleted(true)).toEqual([])
+          expect(await fetchByCompleted(false)).toEqual([])
+
+          // ToDoを3件追加
+          const todo1 = { id: 'a', title: 'ネーム', completed: false }
+          await create(todo1)
+          const todo2 = { id: 'b', title: '下書き', completed: true }
+          await create(todo2)
+          const todo3 = { id: 'c', title: 'ペン入れ', completed: false }
+          await create(todo3)
+
+          // fetchByCompletedの結果を確認
+          expect(await fetchByCompleted(true)).toEqual([todo2])
+          expect(sortTodoById(await fetchByCompleted(false)))
+            .toEqual([todo1, todo3])
+        }
+      )
+    })
+    // ...
+
+
+/** update()のテスト（Jest） **/
+    // fetchByCompleted()のテストのあとに次のコードを追加
+    describe('update()', () => {
+      const todo1 = { id: 'a', title: 'ネーム', completed: false }
+      const todo2 = { id: 'b', title: '下書き', completed: false }
+
+      beforeEach(async () => {
+        await create(todo1)
+        await create(todo2)
+      })
+
+      test('指定したIDのToDoを更新し、更新後のToDoを返す', async () => {
+        // todo1のcompletedを更新
+        expect(await update('a', { completed: true }))
+          .toEqual({ id: 'a', title: 'ネーム', completed: true })
+        expect(await fetchByCompleted(true))
+          .toEqual([{ id: 'a', title: 'ネーム', completed: true }])
+        expect(await fetchByCompleted(false)).toEqual([todo2])
+
+        // todo2のtitleを更新
+        expect(await update('b', { title: 'ペン入れ' }))
+          .toEqual({ id: 'b', title: 'ペン入れ', completed: false })
+        expect(await fetchByCompleted(true)).toEqual([
+          { id: 'a', title: 'ネーム', completed: true }
+        ])
+        expect(await fetchByCompleted(false)).toEqual([
+          { id: 'b', title: 'ペン入れ', completed: false }
+        ])
+      })
+
+      test('存在しないIDを指定するとnullを返す', async () => {
+        expect(await update('c', { completed: true })).toBeNull
+        expect(await fetchByCompleted(true)).toEqual([])
+        expect(sortTodoById(await fetchByCompleted(false)))
+          .toEqual([todo1, todo2])
+      })
+    })
+    // ...
+
+
+/** remove()のテスト（Jest） **/
+    // update()のテストのあとに次のコードを追加
+    describe('remove()', () => {
+      const todo1 = { id: 'a', title: 'ネーム', completed: false }
+      const todo2 = { id: 'b', title: '下書き', completed: false }
+
+      beforeEach(async () => {
+        await create(todo1)
+        await create(todo2)
+      })
+
+      test('指定したIDのToDoを削除する', async () => {
+        expect(await remove('b')).toBe('b')
+        expect(await fetchAll()).toEqual([todo1])
+      })
+
+      test('存在しないIDを指定するとnullを返す', async () => {
+        expect(await remove('c')).toBeNull()
+        expect(sortTodoById(await fetchAll())).toEqual([todo1, todo2])
+      })
+    })
+    // ...
+
+
+/** SHELL **/
+$ npx jest 
+ FAIL  test/jest/data-storage.js
+  file-system
+    create()、fetchAll()
+      ✓ create()で作成したToDoをfetchAll()で取得できる (37ms)
+    fetchByCompleted()
+      ✓ completedの値が引数で指定したものと等しいToDoだけを取得できる (4ms)
+    update()
+      ✓ 指定したIDのToDoを更新し、更新後のToDoを返す (13ms)
+      ✓ 存在しないIDを指定するとnullを返す (3ms)
+    remove()
+      ✓ 指定したIDのToDoを削除する (2ms)
+      ✓ 存在しないIDを指定するとnullを返す (2ms)
+  sqlite
+    create()、fetchAll()
+      ✓ create()で作成したToDoをfetchAll()で取得できる (7ms)
+    fetchByCompleted()
+      ✓ completedの値が引数で指定したものと等しいToDoだけを取得できる (7ms)
+    update()
+      ✓ 指定したIDのToDoを更新し、更新後のToDoを返す (10ms)
+      ✓ 存在しないIDを指定するとnullを返す (5ms)
+    remove()
+      ✓ 指定したIDのToDoを削除する (5ms)
+      ✓ 存在しないIDを指定するとnullを返す (4ms)
+  leveldb
+    create()、fetchAll()
+      ✓ create()で作成したToDoをfetchAll()で取得できる (17ms)
+    fetchByCompleted()
+      ✓ completedの値が引数で指定したものと等しいToDoだけを取得できる (3ms)
+    update()
+      ✕ 指定したIDのToDoを更新し、更新後のToDoを返す (5ms)
+      ✓ 存在しないIDを指定するとnullを返す (4ms)
+    remove()
+      ✓ 指定したIDのToDoを削除する (2ms)
+      ✓ 存在しないIDを指定するとnullを返す (2ms)
+
+  ● leveldb › update() › 指定したIDのToDoを更新し、更新後のToDoを返す
+
+    expect(received).toEqual(expected) // deep equality
+
+    Expected: {"completed": true, "id": "a", "title": "ネーム"}
+    Received: undefined
+
+      70 |   // todo1のcompletedを更新
+      71 |   expect(await update('a', { completed: true }))
+    > 72 |     .toEqual({ id: 'a', title: 'ネーム', completed: true })
+         |      ^
+      73 |   expect(sortTodoById(await fetchAll()))
+      74 |     .toEqual([{ id: 'a', title: 'ネーム', completed: true },
+         |      todo2])
+      75 |
+
+      at Object.toEqual (test/jest/data-storage.js:72:12)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 17 passed, 18 total
+Snapshots:   0 total
+Time:        1.655s
+Ran all test suites.
+
+
+/** leveldb/index.jsのupdate()メソッドの修正 **/
+      // ... .then以降を追記
+      return batch.write().then(() => newTodo) 
+      // ...
+
+
+/** REPL **/
+> const jest = require('jest-mock') 
+undefined
+> const expect = require('expect') 
+undefined
+
+
+/** REPL **/
+# console.log()のモックを生成
+> jest.spyOn(console, 'log') 
+[Function: mockConstructor] {
+  # ... （省略）
+# console.log()を実行
+> console.log('foo') 
+foo
+undefined
+# 正しいアサーション
+> expect(console.log).toHaveBeenCalledWith('foo') 
+undefined
+> expect(console.log).toHaveBeenCalledTimes(1) 
+undefined
+# 誤ったアサーション
+> expect(console.log).toHaveBeenCalledWith('bar') 
+Uncaught:
+[JestAssertionError: expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+Expected: "bar"
+Received: "foo"
+
+Number of calls: 1] {
+  matcherResult: { message: [Function (anonymous)], pass: false }
+}
+> expect(console.log).toHaveBeenCalledTimes(2) 
+Uncaught:
+[JestAssertionError: expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+Expected number of calls: 2
+Received number of calls: 1] {
+  matcherResult: { message: [Function (anonymous)], pass: false }
+}
+
+
+/** REPL **/
+# 固定値（ここではtrue）を返す
+> console.log.mockReturnValue(true) 
+[Function: mockConstructor] {
+  # ... （省略）
+> console.log('foo') 
+true
+# 代替実装を関数（ここでは第一引数に第二引数を足す）で定義
+> console.log.mockImplementation((arg1, arg2) => arg1 + arg2) 
+[Function: mockConstructor] {
+  # ... （省略）
+> console.log('foo', 'bar') 
+'foobar'
+
+
+/** REPL **/
+# 実装のないモック
+> const emptyMock = jest.fn() 
+undefined
+# モックの実行
+> emptyMock(10, 20) 
+undefined
+# アサーション
+> expect(emptyMock).toHaveBeenCalledTimes(1) 
+undefined
+# 実装の定義されたモック
+> const multiplyMock = jest.fn((a, b) => a * b) 
+undefined
+# モックの実行
+> multiplyMock(10, 20) 
+200
+# アサーション
+> expect(multiplyMock).toHaveBeenCalledTimes(1) 
+undefined
+
+
+/** REPL **/
+> const uuid = require('uuid') 
+undefined
+# 文字列への置換を試みる
+> uuid.v4 = 'foo' 
+'foo'
+# 関数のまま
+> uuid.v4 
+[Function: v4]
+
+
+/** js **/
+const uuid = require('uuid')
+
+// uuidのモックを生成
+jest.mock('uuid')
+// モックが'a'という文字列を返すようにする
+uuid.v4.mockReturnValue('a')
+
+// 第二引数に代替実装を返す関数を与えることで、1行で済ませることも可能
+jest.mock('uuid', () => ({ v4: () => 'a' }))
+
+
+/** REPL **/
+> jest.restoreAllMocks() 
+undefined
+
+
+/** REPL **/
+> npm install -D supertest 
+
+
+/** todo-data-storage/test/jest/app.js **/
+'use strict'
+const fileSystem = require('../../file-system')
+const uuid = require('uuid')
+const request = require('supertest')
+
+// ストレージとしてfile-systemの実装が使われるようにする
+process.env.npm_lifecycle_event = 'file-system'
+const app = require('../../app')
+
+// モジュールのモックを生成
+jest.mock('../../file-system')
+jest.mock('uuid')
+
+// テスト完了後にHTTPサーバを終了
+afterAll(() => app.close())
+
+
+/** GET /api/todosで「completed」が指定されていない場合のテスト（Jest） **/
+// ...
+describe('app', () => {
+  describe('GET /api/todos', () => {
+    describe('completedが指定されていない場合', () => {
+      test('fetchAll()で取得したToDoの配列を返す', async () => {
+        const todos = [
+          { id: 'a', title: 'ネーム', completed: false },
+          { id: 'b', title: '下書き', completed: true }
+        ]
+        // モックが返す値の指定
+        fileSystem.fetchAll.mockResolvedValue(todos)
+
+        // リクエストの送信
+        const res = await request(app).get('/api/todos')
+
+        // レスポンスのアサーション
+        expect(res.statusCode).toBe(200)
+        expect(res.body).toEqual(todos)
+      })
+      test('fetchAll()が失敗したらエラーを返す', async () => {
+        // モックが返す値の指定
+        fileSystem.fetchAll.mockRejectedValue(new Error('fetchAll()失敗'))
+
+        // リクエストの送信
+        const res = await request(app).get('/api/todos')
+
+        // レスポンスのアサーション
+        expect(res.statusCode).toBe(500)
+        expect(res.body).toEqual({ error: 'fetchAll()失敗' })
+      })
+    })
+  })
+})
+
+
+/** GET /api/todosで「completed」が指定されている場合のテスト（Jest） **/
+    // completedが指定されていない場合のテストのあとに次のコードを追加
+    describe('completedが指定されている場合', () => {
+      test(
+        'completedを引数にfetchByCompleted()を実行し取得したToDoの配列を返す',
+        async () => {
+          const todos = [
+            { id: 'a', title: 'ネーム', completed: false },
+            { id: 'b', title: '下書き', completed: true }
+          ]
+          // モックが返す値の指定
+          fileSystem.fetchByCompleted.mockResolvedValue(todos)
+
+          for (const completed of [true, false]) {
+            // リクエストの送信
+            const res = await request(app)
+              .get('/api/todos')
+              .query({ completed })
+
+            // レスポンスのアサーション
+            expect(res.statusCode).toBe(200)
+            expect(res.body).toEqual(todos)
+            // fetchByCompleted()の引数のアサーション
+            expect(fileSystem.fetchByCompleted)
+              .toHaveBeenCalledWith(completed)
+          }
+        }
+      )
+      test('fetchByCompleted()が失敗したらエラーを返す', async () => {
+        // モックが返す値の指定
+        fileSystem.fetchByCompleted
+          .mockRejectedValue(new Error('fetchByCompleted()失敗'))
+
+        // リクエストの送信
+        const res = await request(app)
+          .get('/api/todos')
+          .query({ completed: true })
+
+        // レスポンスのアサーション
+        expect(res.statusCode).toBe(500)
+        expect(res.body).toEqual({ error: 'fetchByCompleted()失敗' })
+      })
+    })
+    // ...
+
+
+/** POST /api/todosのテスト（Jest） **/
+  // GET /api/todosのテストのあとに次のコードを追加
+  describe('POST /api/todos', () => {
+    test(
+      'パラメータで指定したタイトルを引数にcreate()を実行し、結果を返す',
+      async () => {
+        // uuid.v4()が返す値を指定
+        uuid.v4.mockReturnValue('a')
+        // モックで値のないPromiseを返す
+        fileSystem.create.mockResolvedValue()
+
+        // リクエストの送信
+        const res = await request(app)
+          .post('/api/todos')
+          .send({ title: 'ネーム' })
+
+        // レスポンスのアサーション
+        const expectedTodo = { id: 'a', title: 'ネーム', completed: false }
+        expect(res.statusCode).toBe(201)
+        expect(res.body).toEqual(expectedTodo)
+        // create()の引数のアサーション
+        expect(fileSystem.create).toHaveBeenCalledWith(expectedTodo)
+      }
+    )
+    test(
+      'パラメータにタイトルが指定されていない場合、400エラーを返す',
+      async () => {
+        for (const title of ['', undefined]) {
+          // リクエストの送信
+          const res = await request(app)
+            .post('/api/todos')
+            .send({ title })
+
+          // レスポンスのアサーション
+          expect(res.statusCode).toBe(400)
+          expect(res.body).toEqual({ error: 'title is required' })
+          // create()が実行されていないことのアサーション
+          expect(fileSystem.create).not.toHaveBeenCalled()
+        }
+      }
+    )
+    test('create()が失敗したらエラーを返す', async () => {
+      // モックが返す値の指定
+      fileSystem.create.mockRejectedValue(new Error('create()失敗'))
+
+      // リクエストの送信
+      const res = await request(app)
+        .post('/api/todos')
+        .send({ title: 'ネーム' })
+
+      // レスポンスのアサーション
+      expect(res.statusCode).toBe(500)
+      expect(res.body).toEqual({ error: 'create()失敗' })
+    })
+  })
+  // ...
+
+
+/** SHELL **/
+$ npx jest 
+# ... （省略）
+Test Suites: 2 passed, 2 total
+Tests:       25 passed, 25 total
+Snapshots:   0 total
+Time:        1.547s
+Ran all test suites.
+
+
+/** SHELL **/
+$ npx jest --coverage 
+
+
+/** SHELL **/
+$ npx jest --watch 
+# ... （省略）
+Watch Usage
+ › Press a to run all tests.
+ › Press f to run only failed tests.
+ › Press p to filter by a filename regex pattern.
+ › Press t to filter by a test name regex pattern.
+ › Press q to quit watch mode.
+ › Press Enter to trigger a test run.
+
+
+/** SHELL **/
+# 5章のToDo管理アプリケーションのあるディレクトリで次のコマンドを実行
+$ node --inspect app 
+Debugger listening on ws://127.0.0.1:9229/c98d5cb4-67e7-4bd0-90eb-4c694d581c04
+For help, see: https://nodejs.org/en/docs/inspector

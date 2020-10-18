@@ -1,0 +1,354 @@
+// 9章に登場するサンプルコード
+
+/** SHELL **/
+$ npm init -y 
+# ... （省略）
+$ npm install express 
+
+
+/** hello-world/app.js **/
+'use strict'
+require('express')()
+  .get('/', (req, res) => res.send('Hello world'))
+  // 環境変数で指定されたポート（指定されなかった場合は3000）でlisten
+  .listen(process.env.PORT || 3000)
+
+
+/** hello-world/package.json **/
+{
+  // ...
+  "scripts": {
+    "start": "node app",
+    // ...
+  },
+  // ...
+}
+
+
+/** SHELL **/
+$ npm install -D pm2 
+
+
+/** SHELL **/
+# app.jsをエントリポイントとするアプリケーションの起動
+$ npx pm2 start app.js 
+
+
+/** SHELL **/
+# PM2が管理するアプリケーション一覧の表示
+$ npx pm2 ls 
+
+
+/** SHELL **/
+# PM2が管理するアプリケーションのリアルタイムモニタリング
+$ npx pm2 monit 
+
+
+/** SHELL **/
+# appアプリケーションの停止
+$ npx pm2 stop app 
+# appアプリケーションの削除
+$ npx pm2 delete app 
+
+
+/** SHELL **/
+# PM2をそのプロセスごと停止
+$ npx pm2 kill 
+
+
+/** SHELL **/
+# エコシステムファイルの生成
+$ npx pm2 ecosystem 
+
+
+/** hello-world/ecosystem.config.js **/
+'use strict'
+module.exports = {
+  // アプリケーションに関する設定
+  // アプリケーションは複数管理できるため、配列になっている
+  apps: [
+    {
+      // PM2で管理されるアプリケーション名
+      name: 'APP',
+      // 実行されるスクリプト
+      script: 'app.js',
+      // スクリプトに渡される引数
+      args: 'one two',
+      // インスタンス数
+      instances: 0,
+      // アプリケーション実行時の環境変数
+      env: {
+        NODE_ENV: 'development'
+      },
+      // "--env production"オプション付きでのアプリケーション起動時の環境変数
+      env_production: {
+        NODE_ENV: 'production'
+      }
+    },
+    // 2つ目以降のアプリケーションの設定
+  ],
+  // デプロイに関する設定
+  // 環境ごとに異なる設定を記述できるため、
+  // 環境名をプロパティ名とするオブジェクトになっている
+  deploy: {
+    production: {
+      // デプロイに使用するSSHユーザー名
+      user: 'node',
+      // デプロイ先ホスト（配列で複数のホストを指定することも可能）
+      host: '212.83.163.1',
+      // デプロイ対象のGitブランチ
+      ref: 'origin/master',
+      // デプロイ対象のGitリポジトリ
+      repo: 'git@github.com:repo.git',
+      // ソースコードをgit cloneするデプロイ先ホストのパス
+      path: '/var/www/production',
+      // デプロイ後にデプロイ先で実行するコマンド
+      'post-deploy': 'npm install && ' +
+        'pm2 reload ecosystem.config.js --env production'
+    },
+    // その他の環境へのデプロイの設定
+  }
+}
+
+
+/** REPL **/
+# エコシステムファイルを利用したアプリケーションの起動
+> npx pm2 start 
+# 任意の名前でエコシステムファイルを作成した場合
+> npx pm2 start my-ecosystem.config.js 
+
+
+/** REPL **/
+# 初回デプロイ前のproduction環境のセットアップ
+> npx pm2 deploy production setup 
+# デプロイ
+> npx pm2 deploy production 
+# 任意の名前でエコシステムファイルを作成した場合
+> npx pm2 deploy my-ecosystem.config.js production setup 
+> npx pm2 deploy my-ecosystem.config.js production 
+
+
+/** --- **/
+命令 引数
+
+
+/** hello-world/Dockerfile **/
+FROM node:14-alpine
+
+ARG NODE_ENV=development
+ENV NODE_ENV=${NODE_ENV}
+
+WORKDIR /usr/src/app
+
+COPY package*.json ./
+RUN npm ci
+
+COPY . .
+
+EXPOSE 3000
+CMD [ "npm", "start" ]
+
+
+/** キャッシュが有効に使われないCOPYの書き方の例 **/
+FROM node:14-alpine
+
+WORKDIR /usr/src/app
+
+# 最初に全ファイルをコピーすると、ソースコードに少しでも差異があれば
+# COPY . .の行からやり直しになり、インストールするnpmパッケージが同じでも
+# npm ciが再度実行されてしまう
+COPY . .
+RUN npm ci
+
+EXPOSE 3000
+CMD [ "npm", "start" ]
+
+
+/** hello-world/.dockerignore **/
+node_modules
+
+
+/** SHELL **/
+$ docker build -t node-hello-world . 
+
+
+/** SHELL **/
+$ docker images 
+REPOSITORY        TAG     IMAGE ID      CREATED        SIZE
+node-hello-world  latest  e63aec030d3f  2 minutes ago  156MB
+
+
+/** SHELL **/
+$ docker run -p 3000:3000 -d node-hello-world 
+
+
+/** SHELL **/
+$ docker ps 
+CONTAINER ID        IMAGE               ...   NAMES
+d444dd07b787        node-hello-world    ...   kind_allen
+
+
+/** SHELL **/
+# コンテナの停止
+$ docker stop d444dd07b787 # または、docker stop kind_allen
+# コンテナの削除
+$ docker rm d444dd07b787 # または、docker rm kind_allen
+
+
+/** SHELL **/
+$ docker rmi node-hello-world 
+
+
+/** SHELL **/
+$ npm install -D nodemon 
+
+
+/** hello-world/package.json **/
+{
+  // ...
+  "scripts": {
+    "dev": "nodemon app",
+    // ...
+  },
+  // ...
+}
+
+
+/** SHELL **/
+$ npm run dev 
+
+
+/** SHELL **/
+[nodemon] restarting due to changes...
+[nodemon] starting `node app.js`
+
+
+/** hello-world/docker-compose.yml **/
+# Composeのバージョンの指定（3が最新）
+version: '3'
+services:
+  # サービス名
+  web:
+    # カレントディレクトリにあるDockerfileをビルド
+    build: .
+    # コンテナにマウント（共有）するホストOSのディレクトリの指定
+    volumes:
+      # カレントディレクトリをコンテナの/usr/src/appにマウント
+      - .:/usr/src/app
+      # node_modulesはマウント対象から除外
+      - /usr/src/app/node_modules/
+    ports:
+      # ホストOSの3000ポートをコンテナの3000ポートにつなぐ
+      - 3000:3000
+    # コンテナ起動時に実行するコマンドの指定
+    command: npm run dev
+
+
+/** SHELL **/
+$ docker-compose up 
+
+
+/** SHELL **/
+web_1  | [nodemon] restarting due to changes...
+web_1  | [nodemon] starting `node app.js`
+
+
+/** SHELL **/
+$ docker-compose down 
+
+
+/** SHELL **/
+$ docker build -t node-hello-world --build-arg NODE_ENV=production . 
+
+
+/** SHELL **/
+$ docker run -p 3000:3000 -d node-hello-world 
+
+
+/** SHELL **/
+$ docker ps 
+CONTAINER ID        IMAGE            # ... （省略）
+c731880cbd6c        node-hello-world # ... （省略）
+# node-hello-worldイメージのコンテナIDを指定してshコマンドを実行
+$ docker exec -it c731880cbd6c sh 
+# node_modules/nodemonが存在しないことを確認
+/usr/src/app # ls node_modules/nodemon 
+ls: node_modules/nodemon: No such file or directory
+# exitでコンテナから抜ける
+/usr/src/app # exit 
+# コンテナの停止
+$ docker stop c731880cbd6c
+
+
+/** SHELL **/
+$ gcloud init 
+Welcome! This command will take you through the configuration of gcloud.
+
+# ... （省略）
+
+# ログインを促されるので、「Y」を入力してEnterキーを押す
+You must log in to continue. Would you like to log in (Y/n)?  Y 
+
+# ... （省略）
+# ブラウザでログインページが開くので、ログインする
+
+You are logged in as: [〈Googleアカウント〉].
+
+This account has no projects.
+
+# プロジェクトを作成するか問われるので、「Y」を入力してEnterキーを押す
+Would you like to create one? (Y/n)?  Y 
+
+# プロジェクトIDの入力を求められるので、入力してEnterキーを押す
+Enter a Project ID. Note that a Project ID CANNOT be changed later.
+Project IDs must be 6-30 characters (lowercase ASCII, digits, or
+hyphens) in length and start with a lowercase letter.  〈プロジェクトID〉 
+
+# ... （省略）
+# 指定したIDでプロジェクトが作成される
+
+
+/** SHELL **/
+$ gcloud projects create 〈プロジェクトID〉 --set-as-default 
+
+
+/** SHELL **/
+$ gcloud app create 
+
+
+/** hello-world/app.yaml **/
+runtime: nodejs12
+
+
+/** SHELL **/
+$ gcloud app deploy 
+
+
+/** SHELL **/
+$ gcloud app browse 
+
+
+/** hello-world/app.yaml **/
+runtime: nodejs12
+
+handlers:
+# 静的ファイルハンドラ
+- url: /public
+  static_dir: public
+
+
+/** hello-world/public/hello.html **/
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+      <meta charset="UTF-8">
+      <title>Hello</title>
+  </head>
+  <body>
+    <h1>静的ファイルからこんにちは</h1>
+  </body>
+</html>
+
+
+/** SHELL **/
+$ gcloud projects delete 〈プロジェクトID〉 

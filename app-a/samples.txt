@@ -1,0 +1,78 @@
+// 付録Aに登場するサンプルコード
+
+/** SHELL **/
+$ node -v 
+$ npm -v 
+
+
+/** SHELL **/
+$ brew install node 
+
+
+/** SHELL **/
+$ curl -sL https://deb.nodesource.com/setup_14.x | sudo -E bash - 
+$ sudo apt-get install -y nodejs build-essential 
+
+
+/** SHELL **/
+$ curl -sL https://deb.nodesource.com/setup_14.x | bash - 
+$ apt-get install -y nodejs build-essential 
+
+
+/** SHELL **/
+$ curl -sL https://rpm.nodesource.com/setup_14.x | bash - 
+$ yum install gcc-c++ make 
+
+
+/** SHELL **/
+$ curl -o- \ 
+  https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.3/install.sh | bash 
+
+# or
+
+$ wget -qO- \ 
+  https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.3/install.sh | bash 
+
+
+/** SHELL **/
+$ nvm install node    # 最新バージョンをインストール
+$ nvm install --lts   # 最新のActive LTSバージョンをインストール
+$ nvm install 14.4.0  # バージョンを指定してインストール
+
+
+/** SHELL **/
+$ nvm use 14.4.0      # v14.4.0を利用する
+$ nvm use system      # OSにインストールされたバージョンに戻る
+
+
+/** SHELL **/
+$ nvm ls 
+
+
+/** SHELL **/
+$ nvm ls-remote 
+
+
+/** SHELL **/
+$ nvm uninstall 14.4.0 
+
+
+/** SHELL **/
+C:\>nvm install latest  # 最新バージョンをインストール
+C:\>nvm install 14.4.0  # バージョンを指定してインストール
+
+
+/** SHELL **/
+C:\>nvm use 14.4.0 
+
+
+/** SHELL **/
+C:\>npm list 
+
+
+/** SHELL **/
+C:\>nvm list available 
+
+
+/** SHELL **/
+C:\>nvm uninstall 14.4.0 

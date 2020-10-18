@@ -1,0 +1,16 @@
+{
+  "name": "todo-express",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "node app"
+  },
+  "license": "UNLICENSED",
+  "private": true,
+  "dependencies": {
+    "express": "^4.17.1",
+    "isomorphic-fetch": "^3.0.0",
+    "next": "^9.4.2",
+    "react": "^16.13.1",
+    "react-dom": "^16.13.1"
+  }
+}

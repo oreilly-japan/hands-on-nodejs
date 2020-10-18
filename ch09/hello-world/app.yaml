@@ -1,0 +1,6 @@
+runtime: nodejs12
+
+handlers:
+# 静的ファイルハンドラ
+- url: /public
+  static_dir: public

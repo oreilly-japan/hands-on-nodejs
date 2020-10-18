@@ -1,0 +1,981 @@
+// 3章に登場するサンプルコード
+
+/** js **/
+const http = require('http')
+
+// サーバオブジェクト（EventEmitterのインスタンス）の生成
+const server = http.createServer()
+
+// requestイベントのリスナ登録
+server.on('request', (req, res) => {
+  // レスポンスを返す
+  res.writeHead(200, { 'Content-Type' : 'text/plain' })
+  res.write('Hello, World!')
+  res.end()
+})
+
+// listening（リクエストの受付開始）イベントのリスナ登録
+server.on('listening', () => {
+  // ...
+})
+
+// errorイベントのリスナ登録
+server.on('error', err => {
+  // ...
+})
+
+// close（リクエストの受付終了）イベントのリスナ登録
+server.on('close', () => {
+  // ...
+})
+
+// サーバの起動
+server.listen(8000)
+
+
+/** js **/
+// EventEmitterのインスタンスの生成
+const eventEmitter = new events.EventEmitter()
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+// 注意: この実装には一部問題があります 
+function createFizzBuzzEventEmitter(until) { 
+  const eventEmitter = new events.EventEmitter() 
+  _emitFizzBuzz(eventEmitter, until) 
+  return eventEmitter 
+} 
+
+// async/await構文が使えるよう、イベントを発行する部分を別の関数に切り離す 
+async function _emitFizzBuzz(eventEmitter, until) { 
+  eventEmitter.emit('start') 
+  let count = 1 
+  while (count <= until) { 
+    await new Promise(resolve => setTimeout(resolve, 100)) 
+    if (count % 15 === 0) { 
+      eventEmitter.emit('FizzBuzz', count) 
+    } else if (count % 3 === 0) { 
+      eventEmitter.emit('Fizz', count) 
+    } else if (count % 5 === 0) { 
+      eventEmitter.emit('Buzz', count) 
+    } 
+    count += 1 
+  } 
+  eventEmitter.emit('end') 
+} 
+
+// ctrl-D 
+undefined
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+function startListener() { 
+  console.log('start') 
+} 
+function fizzListener(count) { 
+  console.log('Fizz', count) 
+} 
+function buzzListener(count) { 
+  console.log('Buzz', count) 
+} 
+function fizzBuzzListener(count) { 
+  console.log('FizzBuzz', count) 
+} 
+function endListener() { 
+  console.log('end') 
+  this // thisはEventEmitterインスタンス 
+    // すべてのイベントからリスナを削除する 
+    .off('start', startListener) 
+    .off('Fizz', fizzListener) 
+    .off('Buzz', buzzListener) 
+    .off('FizzBuzz', fizzBuzzListener) 
+    .off('end', endListener) 
+} 
+
+createFizzBuzzEventEmitter(40) 
+  .on('start', startListener) 
+  .on('Fizz', fizzListener) 
+  .once('Buzz', buzzListener) // Buzzイベントだけonceで登録 
+  .on('FizzBuzz', fizzBuzzListener) 
+  .on('end', endListener) 
+
+// ctrl-D 
+EventEmitter {
+  # ... （省略）
+> Fizz 3
+Buzz 5
+Fizz 6
+Fizz 9
+Fizz 12
+FizzBuzz 15
+Fizz 18
+Fizz 21
+Fizz 24
+Fizz 27
+FizzBuzz 30
+Fizz 33
+Fizz 36
+Fizz 39
+end
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+createFizzBuzzEventEmitter(0) 
+  .on('start', startListener) 
+  .on('end', endListener) 
+
+// ctrl-D 
+EventEmitter {
+  # ... （省略）
+> # リスナが実行されない
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+function createFizzBuzzEventEmitter(until) { 
+  const eventEmitter = new events.EventEmitter() 
+  // イベントの発行を常に非同期にするため、process.nextTick()を利用 
+  process.nextTick(() => _emitFizzBuzz(eventEmitter, until)) 
+  return eventEmitter 
+} 
+
+createFizzBuzzEventEmitter(0) 
+  .on('start', startListener) 
+  .on('end', endListener) 
+
+// ctrl-D 
+EventEmitter {
+  # ... （省略）
+> start
+end
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+const fooEventEmitter = new events.EventEmitter() 
+fooEventEmitter.on('foo', () => { 
+  console.log('fooイベントリスナの実行') 
+}) 
+console.log('fooイベント発行', fooEventEmitter.emit('foo')) 
+
+// ctrl-D 
+fooイベントリスナの実行
+fooイベント発行 true
+undefined
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+const barEventEmitter = new events.EventEmitter() 
+for (let i = 0; i < 11; i++) { 
+  barEventEmitter.on('bar', () => console.log('bar')) 
+} 
+
+// ctrl-D 
+EventEmitter {
+  # ... （省略）
+> (node:9407) MaxListenersExceededWarning: Possible EventEmitter memory leak 
+detected. 11 bar listeners added to [EventEmitter]. Use 
+emitter.setMaxListeners() to increase limit
+
+
+/** js **/
+{
+  // ブロック内での変数の宣言
+  const a = 1
+}
+// ブロック（aを参照しうるスコープ）が終了したらaが使われることはないため、
+// GCの対象になる
+
+
+/** REPL **/
+# EventEmitterインスタンスの生成
+> const messageEventEmitter = new events.EventEmitter() 
+undefined
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+{ 
+  // ブロック内での変数（listener）の宣言 
+  const listner = () => console.log('Hello') 
+  messageEventEmitter.on('message', listner) 
+} 
+
+// ctrl-D 
+EventEmitter {
+  # ... （省略）
+# listeners()メソッドでmessageイベントのリスナを取得
+> messageEventEmitter.listeners('message') 
+# listenerの参照が残っており、ブロックが終了してもGCの対象にならない
+[ [Function: listner] ]
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+const bazEventEmitter = new events.EventEmitter() 
+// リスナを100個まで登録できるようにする 
+bazEventEmitter.setMaxListeners(100) 
+for (let i = 0; i < 100; i++) { 
+  bazEventEmitter.on('baz', () => console.log('baz')) 
+} 
+
+// ctrl-D 
+EventEmitter {
+  # ... （省略）
+> # 警告が出力されない
+
+
+/** js **/
+// 全EventEmitterを対象に、MaxListenersのデフォルト値を100にする
+events.EventEmitter.defaultMaxListeners = 100
+
+
+/** error-event.js **/
+const events = require('events')
+
+try {
+  new events.EventEmitter()
+    // `error`イベントリスナの登録をコメントアウト
+    // .on('error', err => console.log('errorイベント'))
+    .emit('error', new Error('エラー'))
+} catch (err) {
+  console.log('catch')
+}
+
+
+/** SHELL **/
+$ node error-event 
+catch
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+class FizzBuzzEventEmitter extends events.EventEmitter { 
+  async start(until) { 
+    this.emit('start') 
+    let count = 1 
+    while (true) { 
+      if (count % 15 === 0) { 
+        this.emit('FizzBuzz', count) 
+      } else if (count % 3 === 0) { 
+        this.emit('Fizz', count) 
+      } else if (count % 5 === 0) { 
+        this.emit('Buzz', count) 
+      } 
+      count += 1 
+      if (count >= until) { 
+        break 
+      } 
+      await new Promise(resolve => setTimeout(resolve, 100)) 
+    } 
+    this.emit('end') 
+  } 
+} 
+
+new FizzBuzzEventEmitter() 
+  .on('start', startListener) 
+  .on('Fizz', fizzListener) 
+  .on('Buzz', buzzListener) 
+  .on('FizzBuzz', fizzBuzzListener) 
+  .on('end', endListener) 
+  .start(20) 
+
+// ctrl-D 
+start
+Promise { <pending> }
+> Fizz 3
+Buzz 5
+Fizz 6
+Fizz 9
+Buzz 10
+Fizz 12
+FizzBuzz 15
+Fizz 18
+end
+
+
+/** js **/
+const http = require('http')
+
+// サーバオブジェクトの生成
+const server = http.createServer()
+
+// requestイベントのリスナ登録
+server.on('request', (req, res) => {
+  // クライアントからのリクエストに対する処理
+})
+
+// listeningイベントのリスナ登録
+server.on('listening', () => {
+  // ポートの待機を開始した際の処理
+})
+
+// 8000ポートでリクエストを待機
+server.listen(8000)
+
+
+/** js **/
+const http = require('http')
+
+// サーバオブジェクトの生成およびrequestイベントのリスナ登録
+const server = http.createServer((req, res) => {
+  // クライアントからのリクエストに対する処理
+})
+
+// ポートの監視およびlisteningイベントのリスナ登録
+server.listen(8000, () => {
+  // ポートの待機を開始した際の処理
+})
+
+
+/** REPL **/
+> const eventAEmitter = new events.EventEmitter() 
+undefined
+# asyncイテラブルの生成
+> const eventAIterable = events.on(eventAEmitter, 'eventA') 
+undefined
+# リスナが1つ登録されることを確認
+> eventAEmitter.listeners('eventA') 
+[ [Function: eventHandler] ]
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+// プログラムの実行がfor await...ofの先に進めるよう、 
+// IIAFE（即時実行async関数式）を使う 
+(async () => { 
+  for await (const a of eventAIterable) { 
+    // aの値はeventAをemit()したときの引数の配列 
+    if (a[0] === 'end') { 
+      // endが渡されたらループを抜ける 
+      break 
+    } 
+    console.log('eventA', a) 
+  } 
+})() 
+
+// ctrl-D 
+Promise { <pending> }
+# eventAをemit()
+> eventAEmitter.emit('eventA', 'Hello') 
+true
+> eventA [ 'Hello' ]
+
+# 再度eventAをemit()
+> eventAEmitter.emit('eventA', 'Hello', 'World') 
+true
+> eventA [ 'Hello', 'World' ]
+
+# endを渡してeventAをemit()
+> eventAEmitter.emit('eventA', 'end') 
+true
+# ループを抜けたためリスナの登録が解除されることを確認
+> eventAEmitter.listeners('eventA') 
+[]
+
+
+/** REPL **/
+> const eventBEmitter = new events.EventEmitter() 
+undefined
+> const eventBPromise = events.once(eventBEmitter, 'eventB') 
+undefined
+> eventBPromise.then(arg => console.log('eventB発生', arg)) 
+Promise { <pending> }
+> eventBEmitter.emit('eventB', 'Hello', 'World') 
+true
+> eventB発生 [ 'Hello', 'World' ]
+
+
+/** REPL **/
+> eventBEmitter.emit('eventB', 'one more') 
+false # リスナが存在しないため、emit()がfalseを返す
+# 'eventB発生'のログが出力されない
+
+
+/** js **/
+function copyFile(src, dest, cb) {
+  // ファイルの読み込み
+  fs.readFile(src, (err, data) => {
+    if (err) {
+      return cb(err)
+    }
+    // 読み込んだ内容を別のファイルに書き出す
+    fs.writeFile(dest, data, cb)
+  })
+}
+
+
+/** --- **/
+RangeError [ERR_FS_FILE_TOO_LARGE]: File size (2149580800) is greater than
+ possible Buffer: 2147483647 bytes
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+function copyFileWithStream(src, dest, cb) { 
+  // ファイルから読み込みストリームを生成 
+  fs.createReadStream(src) 
+    // ファイルから書き込みストリームを生成し、pipe()でつなぐ 
+    .pipe(fs.createWriteStream(dest)) 
+    // 完了時にコールバックを呼び出す 
+    .on('finish', cb) 
+} 
+
+// ctrl-D 
+undefined
+
+
+/** REPL **/
+# コピー元ファイルの作成
+> fs.writeFileSync('src.txt', 'Hello, World!') 
+undefined
+# コピー実行
+> copyFileWithStream('src.txt', 'dest.txt', () => console.log('コピー完了')) 
+undefined
+> コピー完了
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+fs.createReadStream('src.txt') 
+  // 暗号化処理を追加 
+  .pipe(crypto.createHash('sha256')) 
+  .pipe(fs.createWriteStream('dest.txt')) 
+  .on('finish', () => console.log('コピー完了')) 
+
+// ctrl-D 
+WriteStream {
+  # ... （省略）
+> コピー完了
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+const readStream = fs.createReadStream('src.txt') 
+readStream 
+  // readableイベントリスナの登録 
+  .on('readable', () => { 
+    console.log('readable') 
+    let chunk 
+    // 現在読み込み可能なデータをすべて読み込む 
+    while((chunk = readStream.read()) !== null) { 
+      console.log(`chunk: ${chunk.toString()}`) 
+    } 
+  }) 
+  // endイベントリスナの登録 
+  .on('end', () => console.log('end')) 
+
+// ctrl-D 
+ReadStream {
+  # ... （省略）
+> readable
+chunk: Hello, World!
+readable
+end
+
+
+/** REPL **/
+# --experimental-repl-awaitフラグを指定してREPLを開く
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+class HelloReadableStream extends stream.Readable { 
+  constructor(options) { 
+    super(options) 
+    this.languages = ['JavaScript', 'Python', 'Java', 'C#'] 
+  } 
+
+  _read(size) { 
+    console.log('_read()') 
+    let language 
+    while ((language = this.languages.shift())) { 
+      // push()でデータを流す 
+      // ただし、push()がfalseを返したらそれ以上流さない 
+      if (!this.push(`Hello, ${language}!\n`)) { 
+        console.log('読み込み中断') 
+        return 
+      } 
+    } 
+    // 最後にnullを流してストリームの終了を通知する 
+    console.log('読み込み完了') 
+    this.push(null) 
+  } 
+} 
+
+// ctrl-D 
+undefined
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+const helloReadableStream = new HelloReadableStream() 
+helloReadableStream 
+  .on('readable', () => { 
+    console.log('readable') 
+    let chunk 
+    while((chunk = helloReadableStream.read()) !== null) { 
+      console.log(`chunk: ${chunk.toString()}`) 
+    } 
+  }) 
+  .on('end', () => console.log('end')) 
+
+// ctrl-D 
+HelloReadableStream {
+  # ... （省略）
+> _read()
+読み込み完了
+readable
+chunk: Hello, JavaScript!
+Hello, Python!
+Hello, Java!
+Hello, C#!
+
+end
+
+
+/** REPL **/
+> const fileWriteStream = fs.createWriteStream('dest.txt') 
+undefined
+> fileWriteStream.write('Hello\n') 
+true
+> fileWriteStream.write('World\n') 
+true
+> fileWriteStream.end() 
+WriteStream {
+  # ... （省略）
+> fs.readFileSync('dest.txt', 'utf8') 
+'Hello\nWorld\n'
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+class DelayLogStream extends stream.Writable { 
+  constructor(options) { 
+    // objectMode: trueを指定するとオブジェクトをデータとして流せる 
+    super({ objectMode: true, ...options }) 
+  } 
+
+  _write(chunk, encoding, callback) { 
+    console.log('_write()') 
+    // messageプロパティ（文字列）、delayプロパティ（数値）を含むオブジェクトが 
+    // データとして流れてくることを期待 
+    const { message, delay } = chunk 
+    // delayで指定した時間（ミリ秒）だけ遅れてmessageをログに出す 
+    setTimeout(() => { 
+      console.log(message) 
+      callback() 
+    }, delay) 
+  } 
+} 
+
+// ctrl-D 
+undefined
+
+
+/** REPL **/
+> const delayLogStream = new DelayLogStream() 
+undefined
+> delayLogStream.write({ message: 'Hi', delay: 0 }) 
+_write()
+true
+> Hi # すぐ出力される
+
+> delayLogStream.write({ message: 'Thank you', delay: 1000 }) 
+_write()
+true
+> Thank you # 1秒後に出力される
+
+> delayLogStream.end({ message: 'Bye', delay: 100 }) 
+_write()
+DelayLogStream {
+  # ... （省略）
+> Bye # 0.1秒後に出力される
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+class LineTransformStream extends stream.Transform { 
+  // 上流から受け取ったデータのうち、下流に流していない分を保持するフィールド 
+  remaining = '' 
+  constructor(options) { 
+    // push()にオブジェクトを渡せるようにする 
+    super({ readableObjectMode: true, ...options }) 
+  } 
+
+  _transform(chunk, encoding, callback) { 
+    console.log('_transform()') 
+    const lines = (chunk + this.remaining).split(/\n/) 
+    // 最後の行は次に入ってくるデータの先頭と同じ行になるため、変数に保持 
+    this.remaining = lines.pop() 
+    for (const line of lines) { 
+      // ここではpush()の戻り値は気にしない 
+      this.push({ message: line, delay: line.length * 100 }) 
+    } 
+    callback() 
+  } 
+
+  _flush(callback) { 
+    console.log('_flush()') 
+    // 残っているデータを流し切る 
+    this.push({ 
+      message: this.remaining, 
+      delay: this.remaining.length * 100 
+    }) 
+    callback() 
+  } 
+} 
+
+// ctrl-D 
+undefined
+
+
+/** js **/
+_flush(callback) {
+  callback(
+    null, // 第一引数（エラー）はnull
+    { message: this.remaining, delay: this.remaining.length * 100 }
+  )
+}
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+const lineTransformStream = new LineTransformStream() 
+lineTransformStream.on('readable', () => { 
+  let chunk 
+  while((chunk = lineTransformStream.read()) !== null) { 
+    console.log(chunk) 
+  } 
+}) 
+
+// ctrl-D 
+LineTransformStream {
+  # ... （省略）
+> lineTransformStream.write('foo\nbar') 
+_transform()
+true
+> { message: 'foo', delay: 300 }
+
+> lineTransformStream.write('baz') 
+_transform()
+true
+> lineTransformStream.end() 
+_flush()
+{ message: 'bazbar', delay: 600 }
+LineTransformStream {
+  # ... （省略）
+
+
+/** js **/
+const myWritable = new stream.Writable({
+  write(chunk, encoding, callback) {
+    // _write()メソッドの実装
+  }
+})
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+new HelloReadableStream() 
+  .pipe(new LineTransformStream()) 
+  .pipe(new DelayLogStream()) 
+  .on('finish', () => console.log('完了')) 
+
+// ctrl-D 
+DelayLogStream {
+  # ... （省略）
+> _read()
+読み込み完了
+_transform()
+_write()
+_transform()
+_transform()
+_transform()
+_flush()
+Hello, JavaScript!
+_write()
+Hello, Python!
+_write()
+Hello, Java!
+_write()
+Hello, C#!
+_write()
+
+完了
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+new HelloReadableStream({ highWaterMark: 0 }) 
+  .pipe(new LineTransformStream({ 
+    // 二重ストリームのhighWaterMarkはwriteとreadでそれぞれ指定が必要 
+    writableHighWaterMark: 0, 
+    readableHighWaterMark: 0 
+  })) 
+  .pipe(new DelayLogStream({ highWaterMark: 0 })) 
+  .on('finish', () => console.log('完了')) 
+
+// ctrl-D 
+DelayLogStream {
+  # ... （省略）
+> _read()
+読み込み中断
+_transform()
+_read()
+読み込み中断
+_write()
+Hello, JavaScript!
+_transform()
+_read()
+読み込み中断
+_write()
+Hello, Python!
+_transform()
+_read()
+読み込み中断
+_write()
+Hello, Java!
+_transform()
+_read()
+読み込み完了
+_write()
+_flush()
+Hello, C#!
+_write()
+
+完了
+
+
+/** REPL **/
+> const ltStream = new LineTransformStream() 
+undefined
+> ltStream === new HelloReadableStream().pipe(ltStream) 
+true
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+const srcReadStream = fs.createReadStream('src.txt') 
+
+srcReadStream 
+  .pipe(fs.createWriteStream('dest.txt')) 
+  .on('finish', () => console.log('分岐1完了')) 
+
+srcReadStream 
+  .pipe(crypto.createHash('sha256')) 
+  .pipe(fs.createWriteStream('dest.crypto.txt')) 
+  .on('finish', () => console.log('分岐2完了')) 
+
+// ctrl-D 
+WriteStream {
+  # ... （省略）
+> 分岐1完了
+分岐2完了
+
+
+/** js **/
+readStream.on('data', chunk => console.log(chunk))
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+fs.createReadStream('no-such-file.txt') 
+  .pipe(fs.createWriteStream('dest.txt')) 
+  .on('error', err => console.log('エラーイベント', err.message)) 
+
+// ctrl-D 
+WriteStream {
+  # ... （省略）
+> Uncaught [Error: ENOENT: no such file or directory, open 'no-such-file.txt'] {
+# ... （省略）
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+fs.createReadStream('no-such-file.txt') 
+  .on('error', err => console.log('エラーイベント', err.message)) 
+  .pipe(fs.createWriteStream('dest.txt')) 
+  .on('error', err => console.log('エラーイベント', err.message)) 
+
+// ctrl-D 
+WriteStream {
+  # ... （省略）
+> エラーイベント ENOENT: no such file or directory, open 'no-such-file.txt'
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+stream.pipeline( 
+  // pipe()したい2つ以上のストリーム 
+  fs.createReadStream('no-such-file.txt'), 
+  fs.createWriteStream('dest.txt'), 
+  // コールバック 
+  err => err 
+    ? console.error('エラー発生', err.message) 
+    : console.log('正常終了') 
+) 
+
+// ctrl-D 
+WriteStream {
+  # ... （省略）
+> エラー発生 ENOENT: no such file or directory, open 'no-such-file.txt'
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+try { 
+  await util.promisify(stream.pipeline)( 
+    fs.createReadStream('no-such-file.txt'), 
+    fs.createWriteStream('dest.txt') 
+  ) 
+  console.log('正常終了') 
+} catch (err) { 
+  console.error('エラー発生', err.message) 
+} 
+
+// ctrl-D 
+エラー発生 ENOENT: no such file or directory, open 'no-such-file.txt'
+undefined
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+stream.finished( 
+  // dataイベントリスナを登録してフローイングモードにする 
+  fs.createReadStream('src.txt').on('data', () => {}), 
+  err => err ? console.error(err.message) : console.log('正常終了') 
+) 
+
+// ctrl-D 
+[Function (anonymous)]
+> 正常終了
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+await util.promisify(stream.finished)( 
+  fs.createReadStream('src.txt').on('data', () => {}) 
+).then(() => console.log('正常終了'), err => console.error(err.message)) 
+
+// ctrl-D 
+正常終了
+undefined
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+const helloReadableStream1 = new HelloReadableStream() 
+  .on('end', () => console.log('完了')) 
+for await (const data of helloReadableStream1) { 
+  console.log('data', data.toString()) 
+} 
+
+// ctrl-D 
+_read()
+読み込み完了
+data Hello, JavaScript!
+Hello, Python!
+Hello, Java!
+Hello, C#!
+
+完了
+undefined
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+const helloReadableStream2 = new HelloReadableStream({ highWaterMark: 0 }) 
+  .on('end', () => console.log('完了')) 
+for await (const data of helloReadableStream2) { 
+  await new Promise(resolve => setTimeout(resolve, 100)) 
+  console.log('data', data.toString()) 
+} 
+
+// ctrl-D 
+_read()
+読み込み中断
+_read()
+読み込み中断
+data Hello, JavaScript!
+
+data Hello, Python!
+
+_read()
+読み込み中断
+data Hello, Java!
+
+_read()
+読み込み中断
+data Hello, C#!
+
+_read()
+読み込み完了
+完了
+undefined
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+// asyncジェネレータ関数 
+async function* asyncGenerator() { 
+  let i = 0 
+  while (i <= 3) { 
+    await new Promise(resolve => setTimeout(resolve, 100)) 
+    // 読み込みストリームとして利用するため数値は使えないことに注意 
+    yield `${i++}` 
+  } 
+} 
+
+// ctrl-D 
+undefined
+# asyncジェネレータ関数からasyncイテラブルを生成
+> const asyncIterable = asyncGenerator() 
+undefined
+# asyncイテラブルから読み込みストリームを生成
+> const readableFromAsyncIterable = stream.Readable.from(asyncIterable) 
+undefined
+> readableFromAsyncIterable.on('data', console.log) 
+Readable {
+  # ... （省略）
+> 0
+1
+2
+3
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+util.promisify(stream.pipeline)( 
+  asyncGenerator(), 
+  fs.createWriteStream('dest.txt') 
+) 
+
+// ctrl-D 
+Promise { <pending> }

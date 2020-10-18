@@ -1,0 +1,298 @@
+// 付録Bに登場するサンプルコード
+
+/** js **/
+[1, 2, 3].map(n => n * 2)
+
+
+/** --- **/
+Program {
+  body: [
+    ExpressionStatement {
+      expression: CallExpression {
+        callee: MemberExpression {
+          object: ArrayExpression {
+            elements: [
+              Literal { value: 1 },
+              Literal { value: 2 },
+              Literal { value: 3 },
+            ]
+          },
+          property: Identifier { name: "map" }
+        },
+        arguments: ArrowFunctionExpression {
+          params: [
+            Identifier { name: "n" },
+          ],
+          body: BinaryExpression {
+            left: Identifier { name: "n" },
+            operator: "*",
+            right: Literal { value: 2 }
+          }
+        }
+      }
+    }
+  ]
+}
+
+
+/** js **/
+[1, 2, 3].map(function (n) {
+  return n * 2
+})
+
+
+/** --- **/
+Program {
+  body: [
+    ExpressionStatement {
+      expression: CallExpression {
+        callee: MemberExpression {
+          object: ArrayExpression {
+            elements: [
+              Literal { value: 1 },
+              Literal { value: 2 },
+              Literal { value: 3 },
+            ]
+          },
+          property: Identifier { name: "map" }
+        },
+        arguments: FunctionExpression { // <- ArrowFunctionExpressionから変更
+          params: [
+            Identifier { name: "n" },
+          ],
+          body: BlockStatement { // <- ノード追加
+            body: ReturnStatement { // <- ノード追加
+              argument: BinaryExpression {
+                left: Identifier { name: "n" },
+                operator: "*",
+                right: Literal { value: 2 }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
+
+
+/** SHELL **/
+$ npm install -D @babel/core @babel/cli @babel/preset-env 
+# 同一スコープからのパッケージのインストールは次のようにまとめられます
+# npm install -D @babel/{core,cli,preset-env}
+
+
+/** SHELL **/
+$ npm install core-js 
+
+
+/** babel/.babelrc **/
+{
+  "presets": [
+    [
+      // プリセットの指定
+      "@babel/preset-env",
+      {
+        // コンパイル後のJavaScriptの実行環境
+        "targets": {
+          "node": true // 利用しているNode.jsのバージョン向けにコンパイル
+        },
+        // コードで利用しているAPIのポリフィルを自動的に追加
+        "useBuiltIns": "usage",
+        "corejs": {
+          // ポリフィルの実体を提供するcore-jsのバージョン
+          "version": 3,
+          // 提案段階（標準化が未完了）のAPIのポリフィルも利用
+          "proposals": true
+        }
+      }
+    ]
+  ]
+}
+
+
+/** babel/src/index.js **/
+import { promises } from 'fs'
+
+export class MyClass {
+  readFile(...paths) {
+    return Promise.any(
+      paths.map(
+        p => promises.readFile(p, 'utf8')
+      )
+    )
+  }
+}
+
+
+/** SHELL **/
+$ npx babel src -d dist 
+
+
+/** babel/dist/index.js **/
+"use strict";
+
+require("core-js/modules/esnext.aggregate-error");
+
+require("core-js/modules/esnext.promise.any");
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.MyClass = void 0;
+
+var _fs = require("fs");
+
+class MyClass {
+  readFile(...paths) {
+    return Promise.any(paths.map(p => _fs.promises.readFile(p, 'utf8')));
+  }
+
+}
+
+exports.MyClass = MyClass;
+
+
+/** REPL **/
+> const babel = require('@babel/core') 
+undefined
+> console.log(babel.transformFileSync('./src/index.js').code) 
+"use strict";
+
+require("core-js/modules/esnext.aggregate-error");
+
+require("core-js/modules/esnext.promise.any");
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.MyClass = void 0;
+
+var _fs = require("fs");
+
+class MyClass {
+  readFile(...paths) {
+    return Promise.any(paths.map(p => _fs.promises.readFile(p, 'utf8')));
+  }
+
+}
+
+exports.MyClass = MyClass;
+undefined
+
+
+/** SHELL **/
+$ npm install -D typescript @types/node 
+
+
+/** js **/
+import { promises } from 'fs'
+
+
+/** SHELL **/
+$ npx tsc --init 
+message TS6071: Successfully created a tsconfig.json file.
+
+
+/** ts/tsconfig.json **/
+{
+  "compilerOptions": {
+    // コンパイル後のECMAScriptバージョン
+    "target": "ESNext", // <- es5からESNextに変更
+    // コンパイル後のモジュールシステム
+    "module": "commonjs",
+    // 厳密な型チェックを有効化
+    "strict": true,
+    // ESモジュールからCommonJSモジュールをimportする方法の指定
+    "esModuleInterop": true,
+    // 型宣言ファイル内の型チェックを無視
+    "skipLibCheck": true,
+    // ファイル名に一貫性を持たせる
+    "forceConsistentCasingInFileNames": true
+  }
+}
+
+
+/** js **/
+import * as path from 'path'
+// Node.jsでの書き方
+// import path from 'path'
+
+path.join('a', 'b')
+
+
+/** ts/index.ts **/
+import { promises } from 'fs'
+
+export class MyClass {
+  readFile(...paths) { 
+    return Promise.any(
+      paths.map(
+        p => promises.readFile(p, 'utf8')
+      )
+    )
+  }
+}
+
+
+/** SHELL **/
+$ npx tsc 
+index.ts:4:12 - error TS7019: Rest parameter 'paths' implicitly has an 'any[]'
+ type.
+
+4   readFile(...paths) {
+             ~~~~~~~~
+
+Found 1 error.
+
+
+/** ts/index.ts **/
+import { promises } from 'fs'
+
+export class MyClass {
+  readFile(...paths: number[]) { // pathsは数値の配列 
+    return Promise.any(
+      paths.map(
+        p => promises.readFile(p, 'utf8')
+      )
+    )
+  }
+}
+
+
+/** SHELL **/
+$ npx tsc 
+index.ts:7:35 - error TS2769: No overload matches this call.
+  # ... （省略）
+
+7         p => promises.readFile(p, 'utf8')
+                                 ~
+
+Found 1 error.
+
+
+/** ts/index.ts **/
+import { promises } from 'fs'
+
+export class MyClass {
+  readFile(...paths: string[]) { // pathsは文字列の配列 
+    return Promise.any(
+      paths.map(
+        p => promises.readFile(p, 'utf8')
+      )
+    )
+  }
+}
+
+
+/** ts/index.js **/
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.MyClass = void 0;
+const fs_1 = require("fs");
+class MyClass {
+    readFile(...paths) {
+        return Promise.any(paths.map(p => fs_1.promises.readFile(p, 'utf8')));
+    }
+}
+exports.MyClass = MyClass;

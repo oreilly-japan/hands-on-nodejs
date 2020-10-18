@@ -1,0 +1,562 @@
+// 4章に登場するサンプルコード
+
+/** fibonacci.js **/
+'use strict'
+module.exports = function fibonacci(n) {
+  // nが1以下の場合はnを、それ以外の場合は直前の2つのフィボナッチ数の和を返す
+  return n <= 1 ? n : fibonacci(n - 1) + fibonacci(n - 2)
+}
+
+
+/** web-app.js **/
+'use strict'
+const http = require('http')
+const fibonacci = require('./fibonacci')
+
+// サーバオブジェクトの生成とリクエストハンドラの設定
+http.createServer((req, res) => {
+  // http://localhost:3000/10 へのリクエストではreq.urlは'/10'になるので、
+  // そこから1文字目を取り除いてnを取得する
+  const n = Number(req.url.substr(1))
+  if (Number.isNaN(n)) {
+    // Number.isNaN()で数値かどうか判定し、数値でなかった場合は無視
+    return res.end()
+  }
+  const result = fibonacci(n)
+  // res.end()で計算結果をレスポンスとして返す
+  res.end(result.toString())
+}).listen(3000) // 3000ポートでリクエストを待機
+
+
+/** SHELL **/
+# 並行度（100）と時間（10秒）を指定してloadtestを実行
+$ npx loadtest -c 100 -t 10 http://localhost:3000/30 
+# npmのバージョンがv7の場合、初回のnpx loadtest実行時に次のように
+# loadtestのインストール可否を問われる（v6ではこのステップはない）
+Need to install the following packages:
+  loadtest
+Ok to proceed? (y) # エンターキーを押す
+INFO Requests: 0, requests per second: 0, mean latency: 0 ms
+INFO Requests: 578, requests per second: 116, mean latency: 791.7 ms
+INFO
+INFO Target URL:          http://localhost:3000/30
+INFO Max time (s):        10
+INFO Concurrency level:   100
+INFO Agent:               none
+INFO
+INFO Completed requests:  1158     # 処理されたリクエスト数
+INFO Total errors:        0
+INFO Total time:          10.005434488999999 s
+INFO Requests per second: 116
+INFO Mean latency:        824.6 ms # レスポンスの平均所要時間
+INFO
+INFO Percentage of the requests served within a certain time
+INFO   50%      858 ms
+INFO   90%      863 ms
+INFO   95%      864 ms
+INFO   99%      866 ms
+INFO  100%      882 ms (longest request)
+
+
+/** multi-process.js **/
+'use strict'
+const { fork, setupMaster } = require('cluster')
+
+console.log('メインプロセス', process.pid)
+
+// サブプロセスが実行するファイルの指定
+setupMaster({ exec: `${__dirname}/web-app` })
+
+// CPUコアの数だけプロセスをフォーク
+const cpuCount = require('os').cpus().length
+for (let i = 0; i < cpuCount; i++) {
+  const sub = fork()
+  console.log('サブプロセス', sub.process.pid)
+}
+
+
+/** SHELL **/
+$ node multi-process 
+メインプロセス: 60394
+サブプロセス: 60425
+サブプロセス: 60426
+サブプロセス: 60428
+サブプロセス: 60427
+
+
+/** SHELL **/
+$ npx loadtest -c 100 -t 10 http://localhost:3000/30 
+INFO Requests: 0, requests per second: 0, mean latency: 0 ms
+INFO Requests: 904, requests per second: 181, mean latency: 524.1 ms
+INFO
+INFO Target URL:          http://localhost:3000/30
+INFO Max time (s):        10
+INFO Concurrency level:   100
+INFO Agent:               none
+INFO
+INFO Completed requests:  1811     # 処理されたリクエスト数
+INFO Total errors:        0
+INFO Total time:          10.001423274 s
+INFO Requests per second: 181
+INFO Mean latency:        536.4 ms # レスポンスの平均所要時間
+INFO
+INFO Percentage of the requests served within a certain time
+INFO   50%      546 ms
+INFO   90%      564 ms
+INFO   95%      569 ms
+INFO   99%      577 ms
+INFO  100%      595 ms (longest request)
+
+
+/** ipc/web-app.js **/
+'use strict'
+const http = require('http')
+const fibonacci = require('../fibonacci')
+const pid = process.pid
+
+// IPCでメッセージを受信して指定されたポート番号でWebサーバを起動
+process.on('message', port => {
+  console.log(pid, `ポート${port}でWebサーバを起動します`)
+  http.createServer((req, res) => {
+    const n = Number(req.url.substr(1))
+    if (Number.isNaN(n)) {
+      return res.end()
+    }
+    const response = fibonacci(n)
+    // 結果をIPCで送信
+    process.send({ pid, response })
+    res.end(response.toString())
+  }).listen(port)
+})
+
+
+/** ipc/multi-process.js **/
+'use strict'
+const { fork, setupMaster } = require('cluster')
+
+console.log('メインプロセス', process.pid)
+
+setupMaster({ exec: `${__dirname}/web-app` })
+
+const cpuCount = require('os').cpus().length
+for (let i = 0; i < cpuCount; i++) {
+  const sub = fork()
+  console.log('サブプロセス', sub.process.pid)
+  // IPCでサブプロセスにポート番号を送信
+  sub.send(3000)
+  // IPCで受信したメッセージをハンドリング
+  sub.on('message', ({ pid, response }) =>
+    console.log(process.pid, `${pid}が${response}を返します`)
+  )
+}
+
+
+/** SHELL **/
+$ node ipc/multi-process 
+メインプロセス 70713
+サブプロセス 70745
+サブプロセス 70744
+サブプロセス 70746
+70745 ポート3000でWebサーバを起動します
+70744 ポート3000でWebサーバを起動します
+70746 ポート3000でWebサーバを起動します
+サブプロセス 70747
+70747 ポート3000でWebサーバを起動します
+
+
+/** SHELL **/
+70713: 70745が55を返します
+
+
+/** REPL **/
+# Dateインスタンスを含むオブジェクトの生成
+> const dateObj = { lastDayOfHeisei: new Date(2019, 3, 30, 9) } 
+undefined
+# JSON.stringify()で文字列にシリアライズ
+> const stringifiedDateObj = JSON.stringify(dateObj) 
+undefined
+# JSON.parse()でパース
+> JSON.parse(stringifiedDateObj) 
+{ lastDayOfHeisei: '2019-04-30T00:00:00.000Z' }
+> typeof _.lastDayOfHeisei 
+'string'
+
+
+/** REPL **/
+> const circular = { bar: 1 } 
+undefined
+# 循環参照させる
+> circular.foo = circular 
+<ref *1> { bar: 1, foo: [Circular *1] }
+> JSON.stringify(circular) 
+Uncaught TypeError: Converting circular structure to JSON
+    at JSON.stringify (<anonymous>)
+
+
+/** js **/
+cluster.setupMaster({
+  exec: `${__dirname}/web-app`,
+  serialization: 'advanced'
+})
+
+
+/** REPL **/
+> const circularWithDate = { lastDayOfHeisei: new Date(2019, 3, 30, 9) } 
+undefined
+> circularWithDate.foo = circularWithDate 
+<ref *1> {
+  lastDayOfHeisei: 2019-04-30T00:00:00.000Z,
+  foo: [Circular *1]
+}
+# シリアライズ
+> const serializedCircularWithDate = v8.serialize(circularWithDate) 
+undefined
+# デシリアライズ
+> v8.deserialize(serializedCircularWithDate) 
+<ref *1> {
+  lastDayOfHeisei: 2019-04-30T00:00:00.000Z,
+  foo: [Circular *1]
+}
+# lastDayOfHeiseiがDateのインスタンスであることを確認
+> _.lastDayOfHeisei instanceof Date 
+true
+
+
+/** REPL **/
+> const child = child_process.fork('./ipc/web-app') 
+undefined
+> child.send(3000) 
+true
+> 11863: ポート3000でWebサーバを起動します
+
+
+/** js **/
+child_process.fork(
+  './ipc/web-app',
+  { serialization: 'advanced' }
+)
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+child_process.exec( 
+  'echo "Hello, World!"', 
+  // 成功した場合、コマンドの標準出力を取得して表示 
+  (err, stdout) => err ? console.error(err) : console.log(stdout) 
+) 
+
+// ctrl-D 
+<ref *1> ChildProcess {
+  # ... （省略）
+> Hello, World!
+
+
+/** multi-thread.js **/
+'use strict'
+const { Worker, threadId } = require('worker_threads')
+
+console.log('メインスレッド', threadId)
+
+// CPUコアの数だけスレッドを起動
+const cpuCount = require('os').cpus().length
+for (let i = 0; i < cpuCount; i++) {
+  // サブスレッドで実行するファイルのパスを指定してWorkerをnew
+  const worker = new Worker(`${__dirname}/web-app.js`)
+  console.log('サブスレッド', worker.threadId)
+}
+
+
+/** SHELL **/
+$ node multi-thread 
+メインスレッド 0
+サブスレッド 1
+サブスレッド 2
+サブスレッド 3
+サブスレッド 4
+
+events.js:170
+      throw er // Unhandled 'error' event
+      ^
+Error: listen EADDRINUSE: address already in use :::3000
+# ... （省略）
+
+
+/** multi-thread/fibonacci.js **/
+'use strict'
+const fibonacci = require('../fibonacci')
+const { workerData, parentPort } = require('worker_threads')
+
+// フィボナッチ数の計算結果をメインスレッドに送信
+parentPort.postMessage(fibonacci(workerData))
+
+
+/** multi-thread/web-app.js **/
+'use strict'
+const http = require('http')
+const { Worker } = require('worker_threads')
+
+http.createServer((req, res) => {
+  const n = Number(req.url.substr(1))
+  if (Number.isNaN(n)) {
+    return res.end()
+  }
+  // コンストラクタの第二引数で値を渡しつつサブスレッドを生成
+  new Worker(`${__dirname}/fibonacci.js`, { workerData: n })
+    // サブスレッドから受け取った結果をレスポンスとして返す
+    .on('message', result => res.end(result.toString()))
+}).listen(3000)
+
+
+/** SHELL **/
+$ npx loadtest -c 100 -t 10 http://localhost:3000/30 
+INFO Requests: 0, requests per second: 0, mean latency: 0 ms
+INFO Requests: 157, requests per second: 31, mean latency: 2269.4 ms
+INFO
+INFO Target URL:          http://localhost:3000/30
+INFO Max time (s):        10
+INFO Concurrency level:   100
+INFO Agent:               none
+INFO
+INFO Completed requests:  382       # 処理されたリクエスト数
+INFO Total errors:        0
+INFO Total time:          10.038330365 s
+INFO Requests per second: 38
+INFO Mean latency:        2300.2 ms # レスポンスの平均所要時間
+INFO
+INFO Percentage of the requests served within a certain time
+INFO   50%      2280 ms
+INFO   90%      3066 ms
+INFO   95%      3135 ms
+INFO   99%      3390 ms
+INFO  100%      3567 ms (longest request)
+
+
+/** multi-thread-pool/fibonacci.js **/
+'use strict'
+const fibonacci = require('../fibonacci')
+const { parentPort } = require('worker_threads')
+
+// messageイベントの監視によりメインスレッドからのメッセージの受信を待機、
+// 受信したらフィボナッチ数を計算して結果をメインスレッドに送信
+parentPort.on('message', n => parentPort.postMessage(fibonacci(n)))
+
+
+/** thread-pool.js **/
+'use strict'
+const { Worker } = require('worker_threads')
+
+module.exports = class ThreadPool {
+  // 空きスレッド、キューを初期化
+  availableWorkers = []
+  queue = []
+  constructor(size, filePath, options) {
+    // 引数で指定されたとおりにスレッドを生成してプール
+    for (let i = 0; i < size; i++) {
+      this.availableWorkers.push(new Worker(filePath, options))
+    }
+  }
+
+  // 外部からの処理要求を受け付けるメソッド
+  executeInThread(arg) {
+    return new Promise(resolve => {
+      const request = { resolve, arg }
+
+      // 空きスレッドがあればリクエストを処理し、なければキューに積む
+      const worker = this.availableWorkers.pop()
+      worker ? this.#process(worker, request) : this.queue.push(request)
+    })
+  }
+
+  // 実際にスレッドで処理を実行するprivateメソッド
+  #process(worker, { resolve, arg }) {
+    worker.once('message', result => {
+      // リクエスト元に結果を返す
+      resolve(result)
+
+      // キューに積まれたリクエストがあれば処理し、なければ空きスレッドに戻す
+      const request = this.queue.shift()
+      request
+        ? this.#process(worker, request)
+        : this.availableWorkers.push(worker)
+    })
+    worker.postMessage(arg)
+  }
+}
+
+
+/** multi-thread-pool/web-app.js **/
+'use strict'
+const http = require('http')
+const cpuCount = require('os').cpus().length
+const ThreadPool = require('../thread-pool')
+
+// CPUコア数と同じサイズのスレッドプールを生成
+const threadPool = new ThreadPool(cpuCount, `${__dirname}/fibonacci.js`)
+
+http.createServer(async (req, res) => {
+  const n = Number(req.url.substr(1))
+  if (Number.isNaN(n)) {
+    return res.end()
+  }
+  const result = await threadPool.executeInThread(n)
+  res.end(result.toString())
+}).listen(3000)
+
+
+/** SHELL **/
+$ npx loadtest -c 100 -t 10 http://localhost:3000/30 
+INFO Requests: 0, requests per second: 0, mean latency: 0 ms
+INFO Requests: 861, requests per second: 172, mean latency: 548 ms
+INFO
+INFO Target URL:          http://localhost:3000/30
+INFO Max time (s):        10
+INFO Concurrency level:   100
+INFO Agent:               none
+INFO
+INFO Completed requests:  1712   # 処理されたリクエスト数
+INFO Total errors:        0
+INFO Total time:          10.004917048 s
+INFO Requests per second: 171
+INFO Mean latency:        566 ms # レスポンスの平均所要時間
+INFO
+INFO Percentage of the requests served within a certain time
+INFO   50%      580 ms
+INFO   90%      592 ms
+INFO   95%      595 ms
+INFO   99%      600 ms
+INFO  100%      610 ms (longest request)
+
+
+/** maybe-transfer.js **/
+'use strict'
+const { parentPort, workerData } = require('worker_threads')
+
+parentPort.postMessage(
+  workerData.buffer,
+  // postMessage()の第二引数に転送対象オブジェクトを指定
+  workerData.transfer ? [workerData.buffer] : []
+)
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+function useMaybeTransfer(transfer) { 
+  // 1 GBのArrayBufferを生成 
+  const buffer = new ArrayBuffer(1024 * 1024 * 1024) 
+  // 現在時刻を記録 
+  const start = perf_hooks.performance.now() 
+  new worker_threads.Worker( 
+    './maybe-transfer.js', 
+    { 
+      workerData: { buffer, transfer }, 
+      // transferListプロパティに転送対象オブジェクトを指定 
+      transferList: transfer ? [buffer] : [] 
+    } 
+  ).on('message', () => 
+    // サブスレッドから値が戻ってくるまでにかかった時間を出力 
+    console.log(perf_hooks.performance.now() - start) 
+  ) 
+  // サブスレッドに渡した値がどう見えるか確認 
+  console.log(buffer) 
+} 
+
+// ctrl-D 
+undefined
+# 転送を利用する場合
+> useMaybeTransfer(true) 
+ArrayBuffer { (detached), byteLength: 0 }
+undefined
+> 64.41930799931288
+
+# 転送を利用しない場合
+> useMaybeTransfer(false) 
+ArrayBuffer {
+  # ... （省略）
+  byteLength: 1073741824
+}
+undefined
+> 3755.7365990057588
+
+
+/** REPL **/
+# 1024バイトのSharedArrayBufferを生成
+> const sharedArrayBuffer = new SharedArrayBuffer(1024) 
+undefined
+# Uint8Arrayのビューを作成
+> const uint8Array = new Uint8Array(sharedArrayBuffer) 
+undefined
+# Int32Arrayのビューを作成
+> const int32Array = new Int32Array(sharedArrayBuffer) 
+undefined
+# 配列の長さの確認
+> uint8Array.length 
+1024 # 1024バイトには8ビットの値が1024個入る
+> int32Array.length 
+256 # 1024バイトには32ビットの値が256個入る
+# int32Arrayの値の更新
+> int32Array[0] = 1000 
+1000
+# uint8Arrayの値の確認
+> uint8Array.slice(0, 4) 
+Uint8Array(4) [ 232, 3, 0, 0 ] # 1000 = 1 * 232 + 2^8 * 3
+
+
+/** multi-thread-share/fibonacci.js **/
+'use strict'
+const fibonacci = require('../fibonacci')
+// workerDataでInt32Arrayインスタンスを受け取る
+const { workerData: int32Array, parentPort } = require('worker_threads')
+
+parentPort.on('message', n => {
+  parentPort.postMessage(fibonacci(n))
+  // 処理のたびに最初の値をインクリメントする
+  int32Array[0] += 1
+})
+
+
+/** multi-thread-share/web-app.js **/
+'use strict'
+const http = require('http')
+const cpuCount = require('os').cpus().length
+const ThreadPool = require('../thread-pool')
+
+// 長さ1のInt32Arrayインスタンスを生成
+const sharedArrayBuffer = new SharedArrayBuffer(4)
+const int32Array = new Int32Array(sharedArrayBuffer)
+
+const threadPool = new ThreadPool(
+  cpuCount,
+  `${__dirname}/fibonacci.js`,
+  { workerData: int32Array } // Int32Arrayインスタンスをスレッドプールに渡す
+)
+
+// メインスレッド側のカウンタ
+let count = 0
+
+http.createServer(async (req, res) => {
+  // /callsに対してはトラッキングしているリクエスト回数を返す
+  if (req.url === '/calls') {
+    return res.end(`Main = ${count}, Sub = ${int32Array[0]}`)
+  }
+  const n = Number(req.url.substr(1))
+  if (Number.isNaN(n)) {
+    return res.end()
+  }
+  count += 1
+  const result = await threadPool.executeInThread(n)
+  res.end(result.toString())
+}).listen(3000)
+
+
+/** multi-thread-share/fibonacci.js **/
+'use strict'
+const fibonacci = require('../fibonacci')
+const { workerData: int32Array, parentPort } = require('worker_threads')
+
+parentPort.on('message', n => {
+  parentPort.postMessage(fibonacci(n))
+  // Atomics.add()でint32Arrayの0番目の値に1を足す 
+  Atomics.add(int32Array, 0, 1) 
+})

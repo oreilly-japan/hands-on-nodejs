@@ -1,0 +1,1194 @@
+// 7章に登場するサンプルコード
+
+/** SHELL **/
+$ npm init -y 
+# ... （省略）
+$ npm install express uuid 
+
+
+/** todo-data-storage/app.js **/
+'use strict'
+const express = require('express')
+const { v4: uuidv4 } = require('uuid')
+// 実行されたスクリプトの名前に応じてデータストレージの実装を使い分ける
+const dataStorage = require(`./${process.env.npm_lifecycle_event}`)
+
+const app = express()
+
+app.use(express.json())
+
+// ToDo一覧の取得
+app.get('/api/todos', (req, res, next) => {
+  if (!req.query.completed) {
+    return dataStorage.fetchAll().then(todos => res.json(todos), next)
+  }
+  const completed = req.query.completed === 'true'
+  dataStorage.fetchByCompleted(completed).then(todos => res.json(todos), next)
+})
+
+// ToDoの新規登録
+app.post('/api/todos', (req, res, next) => {
+  const { title } = req.body
+  if (typeof title !== 'string' || !title) {
+    // titleがリクエストに含まれない場合はステータスコード400（Bad Request）
+    const err = new Error('title is required')
+    err.statusCode = 400
+    return next(err)
+  }
+  const todo = { id: uuidv4() /* UUIDの生成 */, title, completed: false }
+  dataStorage.create(todo).then(() => res.status(201).json(todo), next)
+})
+
+/** Completedの設定、解除の共通処理 */
+function completedHandler(completed) {
+  return (req, res, next) =>
+    dataStorage.update(req.params.id, { completed })
+      .then(todo => {
+        if (todo) {
+          return res.json(todo)
+        }
+        const err = new Error('ToDo not found')
+        err.statusCode = 404
+        next(err)
+      }, next)
+}
+
+// ToDoのCompletedの設定、解除
+app.route('/api/todos/:id/completed')
+  .put(completedHandler(true))
+  .delete(completedHandler(false))
+
+// ToDoの削除
+app.delete('/api/todos/:id', (req, res, next) =>
+  dataStorage.remove(req.params.id).then(id => {
+    if (id !== null) {
+      return res.status(204).end()
+    }
+    const err = new Error('ToDo not found')
+    err.statusCode = 404
+    next(err)
+  }, next)
+)
+
+// エラーハンドリングミドルウェア
+app.use((err, req, res, next) => {
+  console.error(err)
+  res.status(err.statusCode || 500).json({ error: err.message })
+})
+
+app.listen(3000)
+
+
+/** js **/
+const { v4 } = require('uuid')
+const uuidv4 = v4
+
+
+/** REPL **/
+# --experimental-repl-awaitフラグを指定してREPLを開く
+> await fs.promises.mkdir('todos') 
+undefined
+
+
+/** REPL **/
+# デフォルトでは親ディレクトリが存在しないとエラーになる
+> await fs.promises.mkdir('todos/foo/bar') 
+Uncaught [Error: ENOENT: no such file or directory, mkdir 'todos/foo/bar'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'mkdir',
+  path: 'todos/foo/bar'
+}
+# recursiveオプションを付けると成功する
+> await fs.promises.mkdir('todos/foo/bar', { recursive: true }) 
+'todos/foo'
+
+
+/** REPL **/
+# デフォルトでは空でないディレクトリを削除しようとするとエラーになる
+> await fs.promises.rmdir('todos/foo') 
+Uncaught [Error: ENOTEMPTY: directory not empty, rmdir 'todos/foo'] {
+  errno: -66,
+  code: 'ENOTEMPTY',
+  syscall: 'rmdir',
+  path: 'todos/foo'
+}
+# recursiveオプションを付けると成功する
+> await fs.promises.rmdir('todos/foo', { recursive: true }) 
+undefined
+
+
+/** REPL **/
+> const todo1 = JSON.stringify({ id: 1, title: 'ネーム', completed: false }) 
+undefined
+> await fs.promises.writeFile('todos/1.json', todo1) 
+undefined
+
+
+/** REPL **/
+> await fs.promises.writeFile('todos/1.json', todo1, { flag: 'wx' }) 
+Uncaught [Error: EEXIST: file already exists, open 'todos/1.json'] {
+  errno: -17,
+  code: 'EEXIST',
+  syscall: 'open',
+  path: 'todos/1.json'
+}
+
+
+/** REPL **/
+> await fs.promises.readdir('todos') 
+[ '1.json' ]
+
+
+/** REPL **/
+> await fs.promises.readFile('todos/1.json') 
+<Buffer 7b 22 69 64 22 3a 31 2c 22 74 69 74 6c 65 22 3a 22 # ...（以降略）
+
+
+/** REPL **/
+> await fs.promises.readFile('todos/1.json', 'utf8') 
+'{"id":1,"title":"ネーム","completed":false}'
+
+
+/** REPL **/
+> await fs.promises.readFile('todos/2.json', 'utf8') 
+Uncaught [Error: ENOENT: no such file or directory, open 'todos/2.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: 'todos/2.json'
+}
+
+
+/** REPL **/
+> require('./todos/1.json') 
+{ id: 1, title: 'ネーム', completed: false }
+
+
+/** REPL **/
+# 空オブジェクトに書き換え
+> await fs.promises.writeFile('todos/1.json', '{}') 
+undefined
+# require()しても前回キャッシュされた値が返される
+> require('./todos/1.json') 
+{ id: 1, title: 'ネーム', completed: false }
+# キャッシュを削除
+> delete require.cache[require.resolve('./todos/1.json')] 
+true
+# require()すると最新の値が返される
+> require('./todos/1.json') 
+{}
+
+
+/** REPL **/
+> await fs.promises.unlink('todos/1.json') 
+undefined
+# 削除できたことを確認
+> await fs.promises.readdir('todos') 
+[]
+# 空ディレクトリなのでrecursiveオプションなしで削除できる
+> await fs.promises.rmdir('todos') 
+undefined
+
+
+/** REPL **/
+> await fs.promises.unlink('todos/1.json') 
+Uncaught [Error: ENOENT: no such file or directory, unlink 'todos/1.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'unlink',
+  path: 'todos/1.json'
+}
+
+
+/** REPL **/
+> const filePath = 'path/to/file.txt' 
+undefined
+> path.dirname(filePath) 
+'path/to'
+> path.basename(filePath) 
+'file.txt'
+> path.extname(filePath) 
+'.txt'
+
+
+/** REPL **/
+> path.parse(filePath) 
+{
+  root: '',
+  dir: 'path/to',
+  base: 'file.txt',
+  ext: '.txt',
+  name: 'file'
+}
+
+
+/** REPL **/
+> path.join('path1', 'path2') 
+'path1/path2' # Linux、macOSの場合
+# 'path1\\path2' # Windowsの場合
+> path.join('foo/bar', '..', '/baz', 'file.txt') 
+'foo/baz/file.txt' # Linux、macOSの場合
+# 'foo\\baz\\file.txt' # Windowsの場合
+
+
+/** REPL **/
+> path.resolve('path1', 'path2') 
+'/path/to/repl/path1/path2' # Linux、macOSの場合
+# 'C:\\path\\to\\repl\\path1\\path2' # Windowsの場合
+> path.resolve('foo/bar', '..', '/baz', 'file.txt') 
+'/baz/file.txt' # Linux、macOSの場合
+# 'C:\\baz\\file.txt' # Windowsの場合
+
+
+/** todo-data-storage/package.json **/
+{
+  // ...
+  "scripts": {
+    "file-system": "node app",
+    // ...
+  },
+  // ...
+}
+
+
+/** fetchAll()の実装 **/
+'use strict'
+const { extname } = require('path')
+const { readdir, readFile } = require('fs').promises
+
+exports.fetchAll = async () => {
+  // 同一ディレクトリ内に存在するJSONファイルをすべて取得
+  const files = (await readdir(__dirname))
+    .filter(file => extname(file) === '.json')
+  return Promise.all(
+    files.map(file =>
+      readFile(`${__dirname}/${file}`, 'utf8').then(JSON.parse)
+    )
+  )
+}
+
+
+/** fetchByCompleted()の実装 **/
+exports.fetchByCompleted = completed => exports.fetchAll()
+  .then(all => all.filter(todo => todo.completed === completed))
+
+
+/** create()の実装 **/
+// writeFileの追加
+const { readdir, readFile, writeFile } = require('fs').promises
+
+// ...
+
+exports.create = todo =>
+  writeFile(`${__dirname}/${todo.id}.json`, JSON.stringify(todo))
+
+
+/** update()の実装 **/
+exports.update = async (id, update) => {
+  const fileName = `${__dirname}/${id}.json`
+  return readFile(fileName, 'utf8').then(
+    content => {
+      const todo = {
+        ...JSON.parse(content),
+        ...update
+      }
+      return writeFile(fileName, JSON.stringify(todo)).then(() => todo)
+    },
+    // ファイルが存在しない場合はnullを返し、それ以外はそのままエラーにする
+    err => err.code === 'ENOENT' ? null : Promise.reject(err)
+  )
+}
+
+
+/** remove()の実装 **/
+// unlinkの追加
+const { readdir, readFile, writeFile, unlink } = require('fs').promises
+
+// ...
+
+exports.remove = id => unlink(`${__dirname}/${id}.json`)
+  .then(
+    () => id,
+    // ファイルが存在しない場合はnullを返し、それ以外はそのままエラーにする
+    err => err.code === 'ENOENT' ? null : Promise.reject(err)
+  )
+
+
+/** SHELL **/
+$ npm run file-system 
+
+
+/** REPL **/
+# --experimental-repl-awaitフラグを指定してREPLを開く
+> require('isomorphic-fetch') 
+[Function (anonymous)]
+> const baseUrl = 'http://localhost:3000/api/todos' 
+undefined
+# ToDo一覧の取得
+> await fetch(baseUrl) 
+Body {
+  # ... （省略）
+> console.log(_.status, await _.json()) 
+200 []
+undefined
+# ToDoを2件作成
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+for (const title of ['ネーム', '下書き']) { 
+  const res = await fetch(baseUrl, { 
+    method: 'POST', 
+    headers: { 
+      'Content-Type': 'application/json' 
+    }, 
+    body: JSON.stringify({ title }) 
+  }) 
+  console.log(res.status, await res.json()) 
+} 
+
+// ctrl-D 
+201 {
+  id: '38d0cb8e-61de-404b-be42-618631e45731',
+  title: 'ネーム',
+  completed: false
+}
+201 {
+  id: 'f9d7d2e2-c393-49f9-b6cd-764ea299deb8',
+  title: '下書き',
+  completed: false
+}
+undefined
+# titleがないと400エラー
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+(await fetch(baseUrl, { 
+  method: 'POST', 
+  headers: { 
+    'Content-Type': 'application/json' 
+  }, 
+  body: '{}' 
+})).status 
+
+// ctrl-D 
+400
+# ToDo一覧の再取得
+> await fetch(baseUrl).then(res => res.json()) 
+[
+  {
+    id: '38d0cb8e-61de-404b-be42-618631e45731',
+    title: 'ネーム',
+    completed: false
+  },
+  {
+    id: 'f9d7d2e2-c393-49f9-b6cd-764ea299deb8',
+    title: '下書き',
+    completed: false
+  }
+]
+
+
+/** REPL **/
+# 1件目のToDoをcompletedに
+> await fetch(`${baseUrl}/${_[0].id}/completed`, { method: 'PUT' }) 
+Body {
+  # ... （省略）
+> console.log(_.status, await _.json()) 
+200 {
+  id: '38d0cb8e-61de-404b-be42-618631e45731',
+  title: 'ネーム',
+  completed: true
+}
+undefined
+# 存在しないIDを指定すると404エラー
+> (await fetch(`${baseUrl}/foo/completed`, { method: 'PUT' })).status 
+404
+# 一覧を取得して確認
+> await fetch(baseUrl).then(res => res.json()) 
+[
+  {
+    id: '38d0cb8e-61de-404b-be42-618631e45731',
+    title: 'ネーム',
+    completed: true # completedがtrue
+  },
+  {
+    id: 'f9d7d2e2-c393-49f9-b6cd-764ea299deb8',
+    title: '下書き',
+    completed: false
+  }
+]
+# 1件目のToDoのcompletedを解除
+> await fetch(`${baseUrl}/${_[0].id}/completed`, { method: 'DELETE' }) 
+Body {
+  # ... （省略）
+> console.log(_.status, await _.json()) 
+200 {
+  id: '38d0cb8e-61de-404b-be42-618631e45731',
+  title: 'ネーム',
+  completed: false
+}
+undefined
+# 存在しないIDを指定すると404エラー
+> (await fetch(`${baseUrl}/foo/completed`, { method: 'DELETE' })).status 
+404
+# 一覧を取得して確認
+> await fetch(baseUrl).then(res => res.json()) 
+[
+  {
+    id: '38d0cb8e-61de-404b-be42-618631e45731',
+    title: 'ネーム',
+    completed: false # completedがfalse
+  },
+  {
+    id: 'f9d7d2e2-c393-49f9-b6cd-764ea299deb8',
+    title: '下書き',
+    completed: false
+  }
+]
+
+
+/** REPL **/
+# 1件目のToDoを削除
+> (await fetch(`${baseUrl}/${_[0].id}`, { method: 'DELETE' })).status 
+204
+# 存在しないIDを指定すると404エラー
+> (await fetch(`${baseUrl}/foo`, { method: 'DELETE' })).status 
+404
+# 一覧を取得して確認
+> await fetch(baseUrl).then(res => res.json()) 
+[
+  {
+    id: 'f9d7d2e2-c393-49f9-b6cd-764ea299deb8',
+    title: '下書き',
+    completed: false
+  }
+]
+
+
+/** SHELL **/
+$ npm install sqlite3 
+# Windowsの場合
+# C:\>npm install sqlite3 --build-from-source=sqlite3 
+
+
+/** REPL **/
+# --experimental-repl-awaitフラグを指定してREPLを開く
+> const sqlite3 = require('sqlite3').verbose() 
+undefined
+# メモリ上にデータを保存する設定でデータベースオブジェクトを生成
+> const db = new sqlite3.Database(':memory:') 
+undefined
+
+
+/** REPL **/
+# util.promisify()によるdb.run()の変換
+> const dbRun = util.promisify(db.run.bind(db)) 
+undefined
+# CREATE TABLE文の実行
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+await dbRun(`CREATE TABLE todo ( 
+  id TEXT PRIMARY KEY, 
+  title TEXT NOT NULL, 
+  completed BOOLEAN NOT NULL 
+)`) 
+
+// ctrl-D 
+undefined
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+class MyClass { 
+  method1() { 
+    console.log('method1') 
+  } 
+  method2() { 
+    this.method1() 
+  } 
+} 
+
+// ctrl-D 
+undefined
+
+
+/** REPL **/
+> const myInstance = new MyClass() 
+undefined
+> myInstance.method1() 
+method1
+undefined
+> myInstance.method2() 
+method1
+undefined
+
+
+/** REPL **/
+> const myInstanceMethod1 = myInstance.method1 
+undefined
+> myInstanceMethod1() 
+method1
+undefined
+> const myInstanceMethod2 = myInstance.method2 
+undefined
+> myInstanceMethod2() 
+Uncaught TypeError: Cannot read property 'method1' of undefined
+    # ... （省略）
+
+
+/** REPL **/
+> Function.prototype.bind 
+[Function: bind]
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+function add(a, b) { 
+  return (Number(this) || 0) + a + b 
+} 
+
+// ctrl-D 
+undefined
+# 直接実行
+> add(1, 2) 
+3 # 0 + 1 + 2
+# 何も指定せずにbind()した関数を実行
+> add.bind()(1, 2) 
+3 # 0 + 1 + 2
+# thisが1になるようbind()した関数を実行
+> add.bind(1)(1, 2) 
+4 # 1 + 1 + 2
+# thisが1、第一引数が2になるようbind()した関数を実行
+> add.bind(1, 2)(2) 
+5 # 1 + 2 + 2
+# thisが1、第一引数が2、第二引数が3になるようbind()した関数を実行
+> add.bind(1, 2, 3)() 
+6 # 1 + 2 + 3
+# もともとの関数は引数の数が2
+> add.length 
+2
+# thisと第一引数をバインドした関数は引数の数が1
+> add.bind(1, 2).length 
+1
+
+
+/** REPL **/
+> myInstanceMethod2.bind(myInstance)() 
+method1
+undefined
+# 元のthisとは別のものをbind()に渡すことも可能
+> const anotherThis = { method1: () => console.log('another method1') } 
+undefined
+> myInstanceMethod2.bind(anotherThis)() 
+another method1
+undefined
+
+
+/** REPL **/
+# id、title、completedの順に値を指定してToDoを作成する
+> await dbRun(`INSERT INTO todo VALUES ('1', 'ネーム', false)`) 
+undefined
+# idはユニークでなければならないため、同じ値で別のデータを作成しようとすると失敗する
+> await dbRun(`INSERT INTO todo VALUES ('1', '下書き', false)`) 
+Uncaught [Error: SQLITE_CONSTRAINT: UNIQUE constraint failed: todo.id] {
+  errno: 19,
+  code: 'SQLITE_CONSTRAINT'
+}
+
+
+/** js **/
+function createTodo({ id, title, completed }) {
+  return dbRun(
+    `INSERT INTO todo VALUES ('${id}', '${title}', ${completed})`
+  )
+}
+
+
+/** --- **/
+INSERT INTO todo VALUES ('...', '下書き', false) DROP TABLE todo -- ', false)
+
+
+/** REPL **/
+# 静的プレースホルダ（プリペアドステートメント）の作成
+> const statement = db.prepare('INSERT INTO todo VALUES (?, ?, ?)') 
+undefined
+# 静的プレースホルダの実行
+> await util.promisify(statement.run.bind(statement))('2', '下書き', false) 
+undefined
+# 動的プレースホルダ
+> await dbRun('INSERT INTO todo VALUES (?, ?, ?)', '3', 'ペン入れ', false) 
+undefined
+# パラメータを配列で渡すことも可能（静的、動的ともに）
+> await dbRun('INSERT INTO todo VALUES (?, ?, ?)', ['4', '仕上げ', false]) 
+undefined
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+await dbRun( 
+  'INSERT INTO todo VALUES ($id, $title, $completed)', 
+  { $id: '5', $title: '出稿', $completed: false } 
+) 
+
+// ctrl-D 
+undefined
+
+
+/** REPL **/
+> const dbAll = util.promisify(db.all.bind(db)) 
+undefined
+> await dbAll('SELECT * FROM todo') 
+[
+  { id: '1', title: 'ネーム', completed: 0 },
+  { id: '2', title: '下書き', completed: 0 },
+  { id: '3', title: 'ペン入れ', completed: 0 },
+  { id: '4', title: '仕上げ', completed: 0 },
+  { id: '5', title: '出稿', completed: 0 }
+]
+
+
+/** REPL **/
+> await dbAll('SELECT id, title FROM todo') 
+[
+  { id: '1', title: 'ネーム' },
+  { id: '2', title: '下書き' },
+  { id: '3', title: 'ペン入れ' },
+  { id: '4', title: '仕上げ' },
+  { id: '5', title: '出稿' }
+]
+
+
+/** REPL **/
+> await dbAll(`SELECT * FROM todo WHERE id = '2'`) 
+[ { id: '2', title: '下書き', completed: 0 } ]
+# db.get()とプレースホルダを使う例
+> const dbGet = util.promisify(db.get.bind(db)) 
+undefined
+> await dbGet('SELECT * FROM todo WHERE id = ?', '3') 
+{ id: '3', title: 'ペン入れ', completed: 0 }
+
+
+/** REPL **/
+> await dbRun('UPDATE todo SET completed = true') 
+undefined
+# 確認
+> await dbAll('SELECT * FROM todo') 
+[
+  { id: '1', title: 'ネーム', completed: 1 },
+  { id: '2', title: '下書き', completed: 1 },
+  { id: '3', title: 'ペン入れ', completed: 1 },
+  { id: '4', title: '仕上げ', completed: 1 },
+  { id: '5', title: '出稿', completed: 1 }
+]
+
+
+/** REPL **/
+> await dbRun('UPDATE todo SET completed = ? WHERE id = ?', false, '4') 
+undefined
+# 確認
+> await dbAll('SELECT * FROM todo') 
+[
+  { id: '1', title: 'ネーム', completed: 1 },
+  { id: '2', title: '下書き', completed: 1 },
+  { id: '3', title: 'ペン入れ', completed: 1 },
+  { id: '4', title: '仕上げ', completed: 0 },
+  { id: '5', title: '出稿', completed: 1 }
+]
+
+
+/** REPL **/
+> await dbRun('UPDATE todo SET completed = ? WHERE id = ?', false, '100') 
+undefined
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+db.run( 
+  'UPDATE todo SET completed = ? WHERE id = ?', 
+  false, 
+  '100', 
+  function() { 
+    console.log(this) 
+  } 
+) 
+
+// ctrl-D 
+Database { open: true, filename: ':memory:', mode: 65542 }
+> Statement {
+  sql: 'UPDATE todo SET completed = ? WHERE id = ?',
+  lastID: 5,
+  changes: 0 # IDが100のToDoが存在しなかったため更新されたのは0行
+}
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+const dbRun2 = function() { 
+  return new Promise((resolve, reject) => 
+    db.run.apply(db, [ 
+      ...arguments, 
+      function(err) { 
+        err ? reject(err) : resolve(this) 
+      } 
+    ]) 
+  ) 
+} 
+
+// ctrl-D 
+undefined
+
+
+/** js **/
+dbRun2('UPDATE todo SET completed = ? WHERE id = ?', false, '100')
+
+
+/** js **/
+['UPDATE todo SET completed = ? WHERE id = ?', false, '100']
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+// Function.prototype.bind()のコラムで書いた関数の再掲 
+function add(a, b) { 
+  return (Number(this) || 0) + a + b 
+} 
+
+// ctrl-D 
+undefined
+# 直接実行
+> add.apply(1, [2, 3]) 
+6 # 1 + 2 + 3
+
+
+/** REPL **/
+> await dbRun2('UPDATE todo SET completed = ? WHERE id = ?', false, '100') 
+Statement {
+  sql: 'UPDATE todo SET completed = ? WHERE id = ?',
+  lastID: 5,
+  changes: 0 # IDが100のToDoが存在しなかったため更新されたのは0行
+}
+
+
+/** REPL **/
+> await dbRun2('DELETE FROM todo WHERE id = ?', '1') 
+Statement {
+  sql: 'DELETE FROM todo WHERE id = ?',
+  lastID: 5,
+  changes: 1 # 1件削除された
+}
+> await dbAll('SELECT * FROM todo') 
+[
+  { id: '2', title: '下書き', completed: 1 },
+  { id: '3', title: 'ペン入れ', completed: 1 },
+  { id: '4', title: '仕上げ', completed: 0 },
+  { id: '5', title: '出稿', completed: 1 }
+]
+> await dbRun2('DELETE FROM todo') 
+Statement { sql: 'DELETE FROM todo', lastID: 5, changes: 4 } # 4件削除された
+> await dbAll('SELECT * FROM todo') 
+[]
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+async function createTodos(todos) { 
+  await dbRun('BEGIN TRANSACTION') 
+  try { 
+    for (const todo of todos) { 
+      await dbRun( 
+        'INSERT INTO todo VALUES (?, ?, ?)', 
+        todo.id, 
+        todo.title, 
+        todo.completed 
+      ) 
+    } 
+  } catch(err) { 
+    console.error(err) 
+    // エラーがあった場合はロールバック 
+    return dbRun('ROLLBACK TRANSACTION') 
+  } 
+  // 全件の登録に成功したらコミット 
+  return dbRun('COMMIT TRANSACTION') 
+} 
+
+// ctrl-D 
+undefined
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+await createTodos([ 
+  { id: '1', title: 'ネーム', completed: false }, 
+  { id: '2', title: '下書き', completed: false } 
+]) 
+
+// ctrl-D 
+undefined
+> await dbAll('SELECT * FROM todo') 
+[
+  { id: '1', title: 'ネーム', completed: 0 },
+  { id: '2', title: '下書き', completed: 0 }
+]
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+await createTodos([ 
+  { id: '3', title: 'ペン入れ', completed: false }, 
+  { id: '4', title: null, completed: false }, 
+  { id: '5', title: '出稿', completed: false } 
+]) 
+
+// ctrl-D 
+# titleがnullのものが含まれていたため、NOT NULL制約違反でエラーになる
+[Error: SQLITE_CONSTRAINT: NOT NULL constraint failed: todo.title] {
+  errno: 19,
+  code: 'SQLITE_CONSTRAINT'
+}
+undefined
+> await dbAll('SELECT * FROM todo') 
+# 新しいToDoが1件も登録されない
+[
+  { id: '1', title: 'ネーム', completed: 0 },
+  { id: '2', title: '下書き', completed: 0 }
+]
+
+
+/** todo-data-storage/package.json **/
+{
+  // ...
+  "scripts": {
+    "sqlite": "node app",
+    // ...
+  },
+  // ...
+}
+
+
+/** todo-data-storage/sqlite/index.js **/
+'use strict'
+const { promisify } = require('util')
+const { join } = require('path')
+const sqlite3 = process.env.NODE_ENV === 'production'
+  ? require('sqlite3')
+  // production環境以外は冗長モードを利用
+  : require('sqlite3').verbose()
+
+// todo-data-storage/sqlite/sqliteというファイルにデータベースの状態を保存
+const db = new sqlite3.Database(join(__dirname, 'sqlite'))
+
+// コールバックパターンのメソッドをPromise化
+const dbGet = promisify(db.get.bind(db))
+const dbRun = function() {
+  return new Promise((resolve, reject) =>
+    db.run.apply(db, [
+      ...arguments,
+      function(err) {
+        err ? reject(err) : resolve(this)
+      }
+    ])
+  )
+}
+const dbAll = promisify(db.all.bind(db))
+
+
+/** CREATE TABLE文の実行 **/
+dbRun(`CREATE TABLE IF NOT EXISTS todo (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  completed BOOLEAN NOT NULL
+)`).catch(err => {
+  // テーブル作成に失敗した場合はアプリケーションを終了
+  console.error(err)
+  process.exit(1)
+})
+
+
+/** fetchAll()の実装 **/
+// データベースのデータをToDoオブジェクトに変換する
+function rowToTodo(row) {
+  return { ...row, completed: !!row.completed }
+}
+
+exports.fetchAll = () =>
+  dbAll('SELECT * FROM todo').then(rows => rows.map(rowToTodo))
+
+
+/** fetchByCompleted()の実装 **/
+exports.fetchByCompleted = completed =>
+  dbAll('SELECT * FROM todo WHERE completed = ?', completed)
+    .then(rows => rows.map(rowToTodo))
+
+
+/** create()の実装 **/
+exports.create = async todo => {
+  await dbRun(
+    'INSERT INTO todo VALUES (?, ?, ?)',
+    todo.id,
+    todo.title,
+    todo.completed
+  )
+}
+
+
+/** update()の実装 **/
+exports.update = (id, update) => {
+  const setColumns = []
+  const values = []
+  for (const column of ['title', 'completed']) {
+    if (column in update) {
+      setColumns.push(`${column} = ?`)
+      values.push(update[column])
+    }
+  }
+  values.push(id)
+  return dbRun(`UPDATE todo SET ${setColumns.join()} WHERE id = ?`, values)
+    .then(({ changes }) => changes === 1
+      ? dbGet('SELECT * FROM todo WHERE id = ?', id).then(rowToTodo)
+      : null
+    )
+}
+
+
+/** remove()の実装 **/
+exports.remove = id => dbRun('DELETE FROM todo WHERE id = ?', id)
+  .then(({ changes }) => changes === 1 ? id : null)
+
+
+/** SHELL **/
+$ npm run sqlite 
+
+
+/** SHELL **/
+$ npm install level 
+
+
+/** REPL **/
+# --experimental-repl-awaitフラグを指定してREPLを開く
+> const level = require('level') 
+undefined
+# データベースオブジェクトの生成
+# （引数にはデータベースの状態を保存するパスを指定する）
+> const db = level('leveldb') 
+undefined
+
+
+/** REPL **/
+> const todo1 = JSON.stringify({ id: '1', title: '表紙', completed: false }) 
+undefined
+> await db.put('todo:1', todo1) 
+undefined
+
+
+/** REPL **/
+> await db.get('todo:1') 
+'{"id":"1","title":"表紙","completed":false}'
+> await db.get('todo:2') 
+Uncaught Error [NotFoundError]: Key not found in database [todo:2]
+  # ... （省略）
+> _error.notFound 
+true
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+for await (const data of db.createReadStream()) { 
+  console.log(data.key, data.value) 
+} 
+
+// ctrl-D 
+todo:1 {"id":"1","title":"表紙","completed":false}
+undefined
+
+
+/** REPL **/
+> ':'.charCodeAt(0) 
+58 # ':'のコードは58
+> String.fromCharCode(_ + 1) 
+';' # ':'の次の文字は';'
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+// キーの値が'todo:'より大きく、'todo;'より小さいデータを取得 
+for await (const data of db.createReadStream({ gt: 'todo:', lt: 'todo;' })) { 
+  console.log(data.key, data.value) 
+} 
+
+// ctrl-D 
+todo:1 {"id":"1","title":"表紙","completed":false}
+undefined
+
+
+/** REPL **/
+> await db.del('todo:1') 
+undefined
+> await db.get('todo:1') 
+Uncaught Error [NotFoundError]: Key not found in database [todo:1]
+  # ... （省略）
+
+
+/** REPL **/
+> await db.del('todo:1') 
+undefined
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+await db.batch([ 
+  { type: 'put', key: 'city:2021', value: '東京' }, 
+  { type: 'put', key: 'city:2016', value: 'リオ' }, 
+  { type: 'put', key: 'city:2012', value: 'ロンドン' }, 
+  { type: 'del', key: 'city:2021' } 
+]) 
+
+for await (const data of db.createReadStream({ gt: 'city:', lt: 'city;' })) { 
+  console.log(data.key, data.value) 
+} 
+// ctrl-D 
+city:2012 ロンドン
+city:2016 リオ
+undefined
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+await db.batch() 
+  .put('city:2008', '北京') 
+  .put('city:2004', 'アテネ') 
+  .put('city:2000', 'シドニー') 
+  .del('city:2016') 
+  .write() 
+
+for await (const data of db.createReadStream({ gt: 'city:', lt: 'city;' })) { 
+  console.log(data.key, data.value) 
+} 
+
+// ctrl-D 
+city:2000 シドニー
+city:2004 アテネ
+city:2008 北京
+city:2012 ロンドン
+undefined
+
+
+/** REPL **/
+> await db.close() 
+undefined
+
+
+/** todo-data-storage/package.json **/
+{
+  // ...
+  "scripts": {
+    "leveldb": "node app",
+    // ...
+  },
+  // ...
+}
+
+
+/** todo-data-storage/leveldb/index.js **/
+'use strict'
+const level = require('level')
+const { join } = require('path')
+// 同じディレクトリ内のleveldbディレクトリにデータベースの状態を保存
+const db = level(join(__dirname, 'leveldb'))
+
+
+/** fetchAll()の実装 **/
+exports.fetchAll = async () => {
+  const result = []
+  for await (const v of db.createValueStream({ gt: 'todo:', lt: 'todo;' })) {
+    result.push(JSON.parse(v))
+  }
+  return result
+}
+
+
+/** fetchByCompleted()の実装 **/
+exports.fetchByCompleted = async completed => {
+  const promises = []
+  for await (const id of db.createValueStream({
+    // セカンダリインデックスの検索
+    gt: `todo-completed-${completed}:`,
+    lt: `todo-completed-${completed};`
+  })) {
+    promises.push(
+      db.get(`todo:${id}`).then(JSON.parse)
+    )
+  }
+  return Promise.all(promises)
+}
+
+
+/** create()の実装 **/
+exports.create = todo => db.batch()
+  // ToDoの保存
+  .put(`todo:${todo.id}`, JSON.stringify(todo))
+  // セカンダリインデックスの保存
+  .put(`todo-completed-${todo.completed}:${todo.id}`, todo.id)
+  .write()
+
+
+/** update()の実装 **/
+exports.update = (id, update) =>
+  db.get(`todo:${id}`).then(
+    content => {
+      const oldTodo = JSON.parse(content)
+      const newTodo = {
+        ...oldTodo,
+        ...update
+      }
+      let batch = db.batch().put(`todo:${id}`, JSON.stringify(newTodo))
+      // completedの値が変化した場合は、セカンダリインデックスも操作する
+      if (oldTodo.completed !== newTodo.completed) {
+        batch = batch
+          .del(`todo-completed-${oldTodo.completed}:${id}`)
+          .put(`todo-completed-${newTodo.completed}:${id}`, id)
+      }
+      return batch.write()
+    },
+    // ToDoが存在しない場合はnullを返し、それ以外はそのままエラーにする
+    err => err.notFound ? null : Promise.reject(err)
+  )
+
+
+/** remove()の実装 **/
+exports.remove = id =>
+  db.get(`todo:${id}`).then(
+    content => db.batch()
+      .del(`todo:${id}`)
+      .del(`todo-completed-true:${id}`)
+      .del(`todo-completed-false:${id}`)
+      .write()
+      .then(() => id),
+    // ToDoが存在しない場合はnullを返し、それ以外はそのままエラーにする
+    err => err.notFound ? null : Promise.reject(err)
+  )
+
+
+/** SHELL **/
+$ npm run leveldb 
+
+
+/** js **/
+[
+  { id: '1', title: 'ネーム', completed: false },
+  { id: '2', title: '下書き', completed: false }
+]
+
+
+/** --- **/
+id,title,completed
+1,ネーム,false
+2,下書き,false

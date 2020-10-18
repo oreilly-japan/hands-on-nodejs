@@ -1,0 +1,880 @@
+// 1章に登場するサンプルコード
+
+/** SHELL **/
+$ node 
+>
+
+
+/** REPL **/
+> 24 * 60 * 60 
+86400
+
+
+/** REPL **/
+> console.log(24 * 60 * 60) 
+86400
+undefined
+
+
+/** REPL **/
+> let total = 0 
+undefined
+> for (let i = 1; i <= 10; i++) { 
+...   total += i 
+...   console.log(`${i}までの和: ${total}`) 
+... } 
+1までの和: 1
+2までの和: 3
+3までの和: 6
+4までの和: 10
+5までの和: 15
+6までの和: 21
+7までの和: 28
+8までの和: 36
+9までの和: 45
+10までの和: 55
+undefined
+> total 
+55
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+let total2 = 0 
+for (let i = 1; i <= 10; i++) { 
+  total2 += i 
+  console.log(`${i}までの和: ${total2}`) 
+} 
+total2 
+
+// ctrl-D 
+1までの和: 1
+2までの和: 3
+3までの和: 6
+4までの和: 10
+5までの和: 15
+6までの和: 21
+7までの和: 28
+8までの和: 36
+9までの和: 45
+10までの和: 55
+55
+
+
+/** REPL **/
+# mapメソッドで配列内の要素を変換
+> ['foo', 'bar'].map(str => str + str) 
+[ 'foofoo', 'barbar' ]
+> _[1] 
+'barbar'
+> _.length 
+6
+> _ * 2 
+12
+> _.doSomething() 
+Uncaught TypeError: _.doSomething is not a function
+> _error.message 
+'_.doSomething is not a function'
+
+
+/** REPL **/
+> conso 
+
+
+/** REPL **/
+> console 
+
+
+/** REPL **/
+> .exit 
+$
+
+
+/** seconds-in-a-day.js **/
+console.log(24 * 60 * 60)
+
+
+/** SHELL **/
+$ node seconds-in-a-day 
+86400
+
+
+/** REPL **/
+> const foo = 'foo' 
+undefined
+> let bar = 'bar' 
+undefined
+# constで宣言した変数への再割り当てはエラーになる
+> foo = 'foo2' 
+Uncaught TypeError: Assignment to constant variable.
+# letで宣言した変数には再割り当て可能
+> bar = 'bar2' 
+'bar2'
+# constは同一スコープで同名の変数を宣言するとエラーになる
+> const foo = 'foo3' 
+Uncaught SyntaxError: Identifier 'foo' has already been declared
+# letも同
+> let bar = 'bar3' 
+Uncaught SyntaxError: Identifier 'bar' has already been declared
+# constはブロックスコープなので、ブロックの中ではブロック外で宣言済みの変数名を使用可能
+> { const foo = 'foo4' } 
+undefined
+# letも同
+> { let bar = 'bar4' } 
+undefined
+
+
+/** REPL **/
+# 関数宣言
+> function add1(a, b) { return a + b } 
+undefined
+
+
+/** REPL **/
+# 関数式の変数への割り当て
+> const add2 = function(a, b) { return a + b } 
+undefined
+
+
+/** REPL **/
+# 名前付き関数式の変数への割り当て
+> const add3 = function addFn(a, b) { return a + b } 
+undefined
+
+
+/** REPL **/
+> add1.name 
+'add1' # 関数宣言で付けた名前
+> add2.name 
+'add2' # 関数式を割り当てた変数の名前
+> add3.name 
+'addFn' # 関数式で付けた名前
+
+
+/** REPL **/
+# アロー関数式
+> const add4 = (a, b) => { return a + b } 
+undefined
+# アロー関数式の省略記法（{}を省略するとreturnなしで値が返される）
+> const add5 = (a, b) => a + b 
+undefined
+# パラメータが1つならパラメータを囲む()も省略可能
+> const addOne = a => a + 1 
+undefined
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+console.log(add6(1, 2)) 
+console.log(add7(1, 2)) 
+function add6(a, b) { 
+  return a + b 
+} 
+const add7 = (a, b) => a + b 
+
+// ctrl-D 
+# 関数宣言で作ったadd6は宣言前に参照可能
+3
+# 関数式で作ったadd7を作る前に参照するとエラーになる
+Uncaught ReferenceError: Cannot access 'add7' before initialization
+
+
+/** REPL **/
+# オブジェクトリテラルによるプレーンなオブジェクトの生成
+> const obj1 = { propA: 1, propB: 2 } 
+undefined
+# プロパティ名を指定して値を取得（ドット記法）
+> obj1.propA 
+1
+# プロパティ名を指定して値を取得（ブラケット記法）
+> obj1['propA'] 
+1
+# プロパティの追加
+> obj1.propC = 3 
+3
+> obj1 
+{ propA: 1, propB: 2, propC: 3 }
+# プロパティの削除
+> delete obj1.propC 
+true
+> obj1 
+{ propA: 1, propB: 2 }
+
+
+/** REPL **/
+# スプレッド構文でexecuteを追加
+> const obj2 = { ...obj1, propC: 3 } 
+undefined
+# 元のオブジェクトは不変
+> obj1 
+{ propA: 1, propB: 2 }
+# 新しく生成されたオブジェクトにキーが追加されている
+> obj2 
+{ propA: 1, propB: 2, propC: 3 }
+# レスト構文でexecuteを削除
+> const { propA, ...obj3 } = obj2 
+undefined
+# 元のオブジェクトは不変
+> obj2 
+{ propA: 1, propB: 2, propC: 3 }
+# 新しく生成されたオブジェクトでキーが削除されている
+> obj3 
+{ propB: 2, propC: 3 }
+
+
+/** REPL **/
+> const obj4 = { propB: 'b', propD: 'd' } 
+undefined
+> { ...obj2, [obj4.propB + obj2.propC]: 'abc', ...obj4, propA: true } 
+{ propA: true, propB: 'b', propC: 3, b3: 'abc', propD: 'd' }
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+const price = { 
+  value: 100, 
+  get withTax() { 
+    // 同じオブジェクトのプロパティはthisから参照可能（this.value） 
+    // Math.floor()は数値の小数点を切り捨てる 
+    return Math.floor(this.value * 1.1) 
+  }, 
+  set withTax(withTax) { 
+    // Math.ceil()は数値の小数点を切り上げる 
+    this.value = Math.ceil(withTax / 1.1) 
+  } 
+} 
+
+// ctrl-D 
+undefined
+# getterから値を取得
+> price.withTax 
+110
+# setterで値を設定
+> price.withTax = 333 
+333
+# getterで取得される値が更新されることを確認
+> price.withTax 
+333
+# setterにより正しく値が設定されることを確認
+> price.value 
+303
+
+
+/** REPL **/
+> Object.keys(obj2) 
+[ 'propA', 'propB', 'propC' ]
+> Object.values(obj2) 
+[ 1, 2, 3 ]
+> Object.entries(obj2) 
+[ [ 'propA', 1 ], [ 'propB', 2 ], [ 'propC', 3 ] ]
+
+
+/** REPL **/
+# 配列リテラルで初期化
+> const arr1 = ['foo', 'bar'] 
+undefined
+# lengthプロパティで配列の長さを取得
+> arr1.length 
+2
+# 指定したインデックスの要素を取得
+> arr1[1] 
+'bar'
+# 指定した要素のインデックスを取得（存在しなければ-1）
+> arr1.indexOf('bar') 
+1
+> arr1.indexOf('baz') 
+-1
+# 要素が配列に含まれるかどうか
+> arr1.includes('bar') 
+true
+> arr1.includes('baz') 
+false
+# 全要素を引数に指定した文字列で結合
+> arr1.join('-') 
+'foo-bar'
+# 引数を指定しなければ','で結合
+> arr1.join() 
+'foo,bar'
+
+
+/** REPL **/
+# 末尾に要素を追加
+> arr1.push('baz') 
+3
+> arr1 
+[ 'foo', 'bar', 'baz' ]
+# 末尾に要素を複数追加
+> arr1.push('a', 'b', 'c') 
+6
+> arr1 
+[ 'foo', 'bar', 'baz', 'a', 'b', 'c' ]
+# 末尾の要素を削除
+> arr1.pop() 
+'c'
+> arr1 
+[ 'foo', 'bar', 'baz', 'a', 'b' ]
+# 先頭に要素を追加
+> arr1.unshift('qux') 
+6
+> arr1 
+[ 'qux', 'foo', 'bar', 'baz', 'a', 'b' ]
+# 先頭に要素を複数追加
+> arr1.unshift('d', 'e', 'f') 
+9
+> arr1 
+[
+  'd',   'e',   'f',
+  'qux', 'foo', 'bar',
+  'baz', 'a',   'b'
+]
+# 先頭の要素を削除
+> arr1.shift() 
+'d'
+> arr1 
+[
+  'e',   'f',   'qux',
+  'foo', 'bar', 'baz',
+  'a',   'b'
+]
+
+
+/** REPL **/
+> const arr2 = ['foo', 'bar', 'baz'] 
+undefined
+# スプレッド構文で先頭と末尾に要素を追加
+> const arr3 = ['a', ...arr2, 'b', 'c'] 
+undefined
+> arr3 
+[ 'a', 'foo', 'bar', 'baz', 'b', 'c' ]
+# 元の配列はそのまま
+> arr2 
+[ 'foo', 'bar', 'baz' ]
+# レスト構文で先頭の要素を削除
+> const [head1, head2, ...arr4] = arr2 
+undefined
+> arr4 
+[ 'baz' ]
+# 元の配列はそのまま
+> arr2 
+[ 'foo', 'bar', 'baz' ]
+
+
+/** REPL **/
+# レスト要素が配列の最後にないとエラーになる
+> const [...arr5, last] = arr2 
+const [...arr5, last] = arr2
+       ^^^^^^^
+
+Uncaught SyntaxError: Rest element must be last element
+# 切り出したい最初の要素のインデックスと最後の要素の次のインデックスを指定して
+# 部分配列を取得する
+> arr2.slice(0, 2) 
+[ 'foo', 'bar' ]
+# インデックスに負の値を指定すると配列の最後から数えたインデックスとして扱われる
+> arr2.slice(0, -1) 
+[ 'foo', 'bar' ]
+# 第二引数を省略すると、配列の最後まで切り出す意味になる
+> arr2.slice(2) 
+[ 'baz' ]
+# 第一引数も第二引数も省略すると、配列の最初から最後までコピーする
+> arr2.slice() 
+[ 'foo', 'bar', 'baz' ]
+# slice()メソッドは元の配列を変更しない
+> arr2 
+[ 'foo', 'bar', 'baz' ]
+
+
+/** REPL **/
+# 引数なしで実行するとUTF-16コードの昇順にソートされる
+> arr2.sort() 
+[ 'bar', 'baz', 'foo' ]
+# 元の配列も変更される
+> arr2 
+[ 'bar', 'baz', 'foo' ]
+# 値を比較する関数を引数に指定できる
+# ここでは、文字数の昇順にソートされるような関数を指定
+> arr3.sort((a, b) => a.length - b.length) 
+[ 'a', 'b', 'c', 'foo', 'bar', 'baz' ]
+# 元の配列も変更される
+> arr3 
+[ 'a', 'b', 'c', 'foo', 'bar', 'baz' ]
+
+
+/** REPL **/
+# for文
+> for(let i = 0; i < arr2.length; i++) { console.log(arr2[i]) } 
+bar
+baz
+foo
+undefined
+# for...of文
+> for(const e of arr2) { console.log(e) } 
+bar
+baz
+foo
+undefined
+
+
+/** REPL **/
+# forEach(): 各要素にコールバック関数の処理を適用し、戻り値はない
+> arr2.forEach(console.log) 
+# 配列の要素、その要素のインデックス、操作対象の配列の順でログが出力される
+bar 0 [ 'bar', 'baz', 'foo' ]
+baz 1 [ 'bar', 'baz', 'foo' ]
+foo 2 [ 'bar', 'baz', 'foo' ]
+undefined
+# map(): 各要素をコールバック関数の戻り値に置き換えた配列を返す
+> arr2.map(e => e + e) 
+[ 'barbar', 'bazbaz', 'foofoo' ]
+# filter(): コールバック関数が真の値を返す要素のみを含む配列を返す
+> arr2.filter(e => e.startsWith('b')) // 要素が'b'で始まればtrue 
+[ 'bar', 'baz' ] # 要素が'b'で始まる要素のみを含む配列
+# find(): コールバック関数が真の値を返す最初の要素を返す
+> arr2.find(e => e.startsWith('b')) 
+'bar'
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+arr2.find(e => { 
+  console.log(e) 
+  // 要素が'z'で終わればtrue 
+  return e.endsWith('z') 
+}) 
+
+// ctrl-D 
+bar
+baz
+# 2つ目の'baz'の時点で結果が確定するので、'foo'は処理されない
+'baz'
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+class Foo { 
+  // privateフィールド 
+  #privateField = 1 
+
+  // publicフィールド 
+  publicField = 2 
+
+  // staticなprivateフィールド 
+  static #staticPrivateField = 3 
+
+  // staticなpublicフィールド 
+  static staticPublicField = 4 
+
+  // コンストラクタ 
+  constructor(parameter) { 
+    // コンストラクタの中でもフィールドを初期化できる 
+    this.filedInitializedInConstructor = parameter 
+    console.log('Foo constructor') 
+  } 
+
+  // privateなgetter 
+  get #computed() { 
+    return this.publicField * 2 
+  } 
+
+  // publicなgetter 
+  get computed() { 
+    return this.#computed 
+  } 
+
+  // privateなsetter 
+  set #computed(value) { 
+    this.publicField = value / 2 
+  } 
+
+  // publicなsetter 
+  set computed(value) { 
+    this.#computed = value 
+  } 
+
+  // privateメソッド 
+  #privateMethod() { 
+    return this.#privateField 
+  } 
+
+  // publicメソッド 
+  publicMethod() { 
+    return this.#privateField 
+  } 
+
+  // staticなprivateメソッド 
+  static #staticPrivateMethod() { 
+    return this.#privateField 
+  } 
+
+  // staticなpublicメソッド 
+  static staticPublicMethod() { 
+    return this.#staticPrivateField 
+  } 
+} 
+
+// ctrl-D 
+undefined
+# newでインスタンスを生成
+> const fooInstance = new Foo(100) 
+Foo constructor
+undefined
+# privateフィールドにアクセスできない
+> fooInstance.#privateField; 
+fooInstance.#privateField;
+           ^
+
+Uncaught:
+SyntaxError: Private field '#privateField' must be declared in an enclosing class
+# publicフィールドにアクセスできる
+> fooInstance.publicField 
+2
+# コンストラクタの中で初期化したフィールドにアクセスできる
+> fooInstance.filedInitializedInConstructor 
+100
+# privateなgetterにアクセスできない
+> fooInstance.#computed; 
+fooInstance.#computed;
+           ^
+
+Uncaught SyntaxError: Private field '#computed' must be declared in an 
+enclosing class
+# publicなgetterにアクセスできる
+> fooInstance.computed 
+4
+# privateなsetterにアクセスできない
+> fooInstance.#computed = 10 
+fooInstance.#computed = 10
+           ^
+
+Uncaught SyntaxError: Private field '#computed' must be declared in an 
+enclosing class
+# publicなsetterにアクセスできる
+> fooInstance.computed = 10 
+10
+# setterへのアクセス結果をgetterで確認
+> fooInstance.computed 
+10
+# setterへのアクセス結果をpublicフィールドの値が変更されたことで確認
+> fooInstance.publicField 
+5
+# privateメソッドにアクセスできない
+> fooInstance.#privateMethod(); 
+fooInstance.#privateMethod();
+           ^
+
+Uncaught:
+SyntaxError: Private field '#privateMethod' must be declared in an enclosing class
+# publicメソッドにアクセスできる
+> fooInstance.publicMethod() 
+1
+# staticなprivateフィールドにアクセスできない
+> Foo.#staticPrivateField; 
+Foo.#staticPrivateField;
+   ^
+
+Uncaught:
+SyntaxError: Private field '#staticPrivateField' must be declared in an enclosing class
+# staticなpublicフィールドにアクセスできる
+> Foo.staticPublicField 
+4
+# staticなprivateメソッドにアクセスできない
+> Foo.#staticPrivateMethod(); 
+Foo.#staticPrivateMethod();
+   ^
+
+Uncaught:
+SyntaxError: Private field '#staticPrivateMethod' must be declared in an enclosing class
+# staticなpublicメソッドにアクセスできる
+> Foo.staticPublicMethod() 
+3
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+class Bar extends Foo { 
+  constructor(parameter) { 
+    // サブクラスのコンストラクタでは、thisにアクセスする前に 
+    // 親クラスのコンストラクタを実行しなければならない 
+    super(parameter) 
+    this.subClassPublicField = 100 
+    console.log('Bar constructor') 
+  } 
+  // 親クラスのメソッドのオーバーライド 
+  publicMethod() { 
+    return super.publicMethod() * this.subClassPublicField 
+  } 
+} 
+
+// ctrl-D 
+undefined
+# newでインスタンスを生成
+> const barInstance = new Bar(100) 
+Foo constructor
+Bar constructor
+undefined
+# 親クラスのpublicフィールドにアクセスできる
+> barInstance.publicField 
+2
+# サブクラスのpublicフィールドにアクセスできる
+> barInstance.subClassPublicField 
+100
+# 親クラスのメソッドがサブクラスでオーバーライドされている
+> barInstance.publicMethod() 
+100
+# 親クラスのstaticなpublicフィールドにアクセスできる
+> Bar.staticPublicField 
+4
+# 親クラスのstaticなpublicメソッドにアクセスできるが、
+# その中で親クラスのstaticなprivateフィールドにアクセスしているためエラーになる
+> Bar.staticPublicMethod() 
+Uncaught:
+TypeError: Cannot read private member #staticPrivateField from an object whose
+ class did not declare it
+  # ... （省略）
+
+
+/** REPL **/
+> Foo.prototype 
+{}
+# Object.getOwnPropertyNames()でプロトタイプに含まれるプロパティを表示
+> Object.getOwnPropertyNames(Foo.prototype) 
+[ 'constructor', 'computed', 'publicMethod' ]
+> Foo.prototype.publicMethod 
+[Function: publicMethod]
+# インスタンスの__proto__はクラスのprototypeと等しい
+> fooInstance.__proto__ === Foo.prototype 
+true
+
+
+/** REPL **/
+# fooInstanceはFooのインスタンス
+> fooInstance instanceof Foo 
+true
+> const plainObject = {} 
+undefined
+# plainObjectはFooのインスタンスではない
+> plainObject instanceof Foo 
+false
+# __proto__にFoo.prototypeをセットするとinstanceofの判定がtrueになる
+> plainObject.__proto__ = Foo.prototype 
+{}
+> plainObject instanceof Foo 
+true
+
+
+/** REPL **/
+> barInstance instanceof Foo 
+true
+> barInstance.__proto__ === Bar.prototype 
+true
+> Object.getOwnPropertyNames(Bar.prototype) 
+[ 'constructor', 'publicMethod' ]
+> barInstance.__proto__ === Foo.prototype 
+false
+
+
+/** REPL **/
+> barInstance.__proto__.__proto__ === Foo.prototype 
+true
+
+
+/** REPL **/
+> fooInstance.__proto__.__proto__ === Object.prototype 
+true
+> fooInstance instanceof Object 
+true
+> barInstance.__proto__.__proto__.__proto__ === Object.prototype 
+true
+> barInstance instanceof Object 
+true
+
+
+/** REPL **/
+> 0 === '' 
+false
+> 0 == '' 
+true
+
+
+/** REPL **/
+# プリミティブ（文字列、数値、真偽値など）の場合、
+# 同じリテラルで表現される値同士を===で比較するとtrueとなる
+> 1 === 1 
+true
+# オブジェクトの場合、===は同一のオブジェクトを
+# 参照する変数同士を比較する場合のみtrueを返す
+> { foo: 1 } === { foo: 1 } 
+false # 構造が同じだけで別々のオブエクトなので、false
+> const obj5 = { foo: 1 } 
+undefined
+> const obj6 = obj5 
+undefined
+> obj5 === obj6 
+true # obj5とobj6は同一のオブジェクトを参照するため、true
+
+
+/** cjs-math.js **/
+module.exports.add = (a, b) => a + b
+
+
+/** REPL **/
+> const math = require('./cjs-math') 
+undefined
+> math.add(1, 2) 
+3
+
+
+/** cjs-math.js **/
+module.exports.add = (a, b) => a + b
+module.exports.subtract = (a, b) => a - b
+
+
+/** REPL **/
+> const math2 = require('./cjs-math') 
+undefined
+> math2.subtract(1, 2) 
+Uncaught TypeError: math2.subtract is not a function
+
+
+/** REPL **/
+# delete演算子を使って、require.cacheオブジェクトのキャッシュをクリア
+> delete require.cache[require.resolve('./cjs-math')] 
+true
+> const math3 = require('./cjs-math') 
+undefined
+> math3.subtract(1, 2) 
+-1
+
+
+/** js **/
+module.exports = {
+  add: (a, b) => a + b,
+  subtract: (a, b) => a - b
+}
+
+
+/** js **/
+exports.add = (a, b) => a + b
+exports.subtract = (a, b) => a - b
+
+
+/** js **/
+exports = {
+  add: (a, b) => a + b,
+  subtract: (a, b) => a - b
+}
+
+
+/** js **/
+const module = { exports: {} }
+let exports = module.exports
+
+
+/** REPL **/
+> const module = { exports: {} } 
+undefined
+> let exports = module.exports 
+undefined
+# exportsのプロパティの更新
+> exports.foo = 'foo' 
+'foo'
+# module.exportsに更新内容が反映される
+> module.exports 
+{ foo: 'foo' }
+# exportsそのものの置き換え
+> exports = { bar: 'bar' } 
+{ bar: 'bar' }
+# module.exportsの値に影響しない
+> module.exports 
+{ foo: 'foo' }
+
+
+/** cjs-math2/add.js **/
+module.exports = (a, b) => a + b
+
+
+/** cjs-math2/subtract.js **/
+module.exports = (a, b) => a - b
+
+
+/** cjs-math2/index.js **/
+module.exports = {
+  add: require('./add'),
+  subtract: require('./subtract')
+}
+
+
+/** REPL **/
+> require('./cjs-math2') 
+{ add: [Function (anonymous)], subtract: [Function (anonymous)] }
+
+
+/** key-value.json **/
+{ "key": "value" }
+
+
+/** REPL **/
+> require('./key-value') 
+{ key: 'value' }
+
+
+/** REPL **/
+> require('fs') 
+{
+  appendFile: [Function: appendFile],
+  # ... （省略）
+
+
+/** REPL **/
+> fs 
+{
+  appendFile: [Function: appendFile],
+  # ... （省略）
+
+
+/** cjs-filename-dirname.js **/
+module.exports = { __filename, __dirname }
+
+
+/** REPL **/
+> require('./cjs-filename-dirname') 
+{
+  __filename: '/path/to/dir/cjs-filename-dirname.js',
+  __dirname: '/path/to/dir'
+}
+
+
+/** cjs-non-strict-mode.js **/
+let myString = 'いろは'
+// 変数名のタイプミス
+myStrng = 'にほへと'
+console.log(global.myStrng)
+
+
+/** SHELL **/
+$ node cjs-non-strict-mode 
+にほへと
+
+
+/** cjs-strict-mode.js **/
+'use strict'
+let myString = 'いろは'
+// 変数名のタイプミス
+myStrng = 'にほへと'
+console.log(global.myStrng)
+
+
+/** SHELL **/
+$ node cjs-strict-mode 
+/path/to/cjs-strict-mode.js:4
+myStrng = 'にほへと'
+        ^
+
+ReferenceError: myStrng is not defined
+# ... （省略）

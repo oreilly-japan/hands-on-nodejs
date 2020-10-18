@@ -1,0 +1,452 @@
+// 11章に登場するサンプルコード
+
+/** esm-math.mjs **/
+console.log('Hello from esm-math.mjs')
+
+// 名前付きエクスポート
+export function add(a , b) {
+  return a + b
+}
+export const subtract = (a, b) => a - b
+
+// 宣言済み変数をそのままの名前で名前付きエクスポート
+const multiply = (a, b) => a * b
+export { multiply }
+
+// デフォルトエクスポート
+export default class Math {
+  constructor(value) {
+    this.value = value
+  }
+  add(value) {
+    return new Math(this.value + value)
+  }
+  subtract(value) {
+    return new Math(this.value - value)
+  }
+}
+
+// 宣言済み変数のデフォルトエクスポート
+// 1モジュールから複数回のデフォルトエクスポートはできないためコメントアウト
+// const math = 'math'
+// export default math
+// or
+// export { math as default }
+
+
+/** esm-import.mjs **/
+// 名前付きエクスポートのインポート
+import { add } from './esm-math.mjs'
+console.log('add', add) // ❶
+
+// 名前付きエクスポートを別名でインポート
+import { subtract as sub } from './esm-math.mjs'
+console.log('sub', sub) // ❷
+
+// デフォルトエクスポートのインポート
+import Math from './esm-math.mjs'
+console.log('Math', Math) // ❸
+
+// デフォルトエクスポートはインポート時に任意の命名が可能（as不要）
+import Mathematics from './esm-math.mjs'
+console.log('Mathematics', Mathematics) // ❹
+
+// 名前付きエクスポートとデフォルトエクスポートをまとめてインポート
+import Math2, { subtract, multiply } from './esm-math.mjs'
+
+// インポート対象を指定せずに丸ごとインポート（名前空間インポート）
+import * as math from './esm-math.mjs'
+console.log('import *', math) // ❺
+
+// エクスポートされた値をインポートせず、モジュールのコードを実行するだけ
+import './esm-math.mjs'
+
+
+/** SHELL **/
+$ node esm-import.mjs 
+Hello from esm-math.mjs
+add [Function: add]                       # ❶
+sub [Function: subtract]                  # ❷
+Math [class Math]                         # ❸
+Mathematics [class Math]                  # ❹
+import * [Module] {                       # ❺
+  add: [Function: add],
+  default: [class Math],
+  multiply: [Function: multiply],
+  subtract: [Function: subtract]
+}
+
+
+/** esm-import-all.mjs **/
+import Math, { add, subtract, multiply } from './esm-math.mjs'
+import * as math from './esm-math.mjs'
+
+console.log('Math === math.default', Math === math.default)
+console.log('add === math.add', add === math.add)
+console.log('subtract === math.subtract', subtract === math.subtract)
+console.log('multiply === math.multiply', multiply === math.multiply)
+
+
+/** SHELL **/
+$ node esm-import-all.mjs 
+Hello from esm-math.mjs
+Math === math.default true
+add === math.add true
+subtract === math.subtract true
+multiply === math.multiply true
+
+
+/** SHELL **/
+$ node --input-type=module -e "import './esm-math.mjs'" 
+Hello from esm-math.mjs
+# Windowsで実行する場合は、echoの後ろの文字列は「"」で囲まず、
+# |（パイプ）に続けてすぐnode --input-type=moduleで実行する
+$ echo "import { add } from './esm-math.mjs'; console.log(add(1, 2))" | \ 
+> node --input-type=module 
+Hello from esm-math.mjs
+3
+
+
+/** esm-import-cache.mjs **/
+import './esm-math.mjs'
+
+// クエリ付き
+import './esm-math.mjs?foo=1'
+
+// ハッシュ付き
+import './esm-math.mjs#bar'
+
+
+/** SHELL **/
+$ node esm-import-cache.mjs 
+Hello from esm-math.mjs
+Hello from esm-math.mjs
+Hello from esm-math.mjs
+
+
+/** esm-import-meta.mjs **/
+import { fileURLToPath } from 'url'
+import { dirname } from 'path'
+import { createRequire } from 'module'
+
+console.log('import.meta', import.meta)
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
+
+console.log('__filename', __filename)
+console.log('__dirname', __dirname)
+
+const require = createRequire(import.meta.url)
+const { add } = require('./cjs-math')
+console.log(add(1, 2))
+
+// JSONファイルもロード可能
+// 次の内容のkey-value.jsonが同一ディレクトリに存在する想定
+// { "key": "value" }
+console.log(require('./key-value'))
+
+
+/** SHELL **/
+$ node esm-import-meta.mjs 
+import.meta [Object: null prototype] {
+  url: 'file://path/to/dir/esm-import-meta.mjs'
+}
+__filename /path/to/dir/esm-import-meta.mjs
+__dirname /path/to/dir
+3
+{ key: 'value' }
+
+
+/** json **/
+{
+  "type": "module" // パッケージ内のJavaScriptファイルがESモジュールの場合
+}
+
+
+/** --- **/
+pkg/
+  package.json # { "type": "module" }
+  cjs/
+    package.json # { "type": "commonjs" }
+    index.js
+  esm/
+    index.js
+
+
+/** js **/
+(function(exports, require, module, __filename, __dirname) {
+  // モジュール（JavaScriptファイル）のコードがここで実行される
+})
+
+
+/** js **/
+// 動的なrequire
+// Math.random()は0以上1未満のランダムな数値を返す関数
+const fooOrBar = require(Math.random() < 0.5 ? 'foo' : 'bar')
+
+// 動的なexports
+for(const name of ['foo', 'bar']) {
+  exports[name] = name
+}
+
+
+/** js **/
+// OK
+import foo from 'foo'
+export const bar = 'bar'
+
+// NG
+if (Math.random() < 0.5) {
+  import foo from 'foo'
+}
+for(const v of [1, 2, 3]) {
+  exports const bar = v
+}
+
+
+/** exporter.mjs **/
+export const foo = 'foo'
+console.log('exporterの本文')
+
+
+/** importer.mjs **/
+console.log('importerの本文', foo)
+import { foo } from './exporter.mjs'
+
+
+/** SHELL **/
+$ node importer.mjs 
+exporterの本文
+importerの本文 foo
+
+
+/** cjs.js **/
+'use strict'
+
+// exportsへのシンプルな値の割り当て
+exports.a = 'a'
+
+// if文の中でのexportsへの値の割り当て
+if (Math.random() < 0.5) {
+  exports.b = 'b'
+}
+
+// プロパティ名に変数を使ったexportsへの値の割り当て
+const c = 'c'
+exports[c] = c
+
+
+/** SHELL **/
+# デフォルトインポート
+$ node --input-type=module -e "import cjs from './cjs.js'; console.log(cjs)" 
+{ a: 'a', b: 'b', c: 'c' } # 1/2の確率で{ a: 'a', c: 'c' }になる
+# exportsにシンプルに割り当てられた値の名前付きインポート
+$ node --input-type=module -e "import { a } from './cjs.js'; console.log(a)" 
+a
+# if文の中でexportsに割り当てられた値の名前付きインポート
+$ node --input-type=module -e "import { b } from './cjs.js'; console.log(b)" 
+b # 1/2の確率でundefinedになる
+# プロパティ名に変数を使ってexportsに割り当てられた値の名前付きインポート
+$ node --input-type=module -e "import { c } from './cjs.js'; console.log(c)" 
+file:///path/to/dir/[eval1]:1
+import { c } from './cjs.js'; console.log(c)
+         ^
+SyntaxError: Named export 'c' not found. The requested module './cjs.js' is a CommonJS module, which may not support all module.exports as named exports.
+CommonJS modules can always be imported via the default export, for example using:
+
+import pkg from './cjs.js';
+const { c } = pkg;
+# ... （省略）
+
+# コアモジュールからの名前付きインポート
+$ node --input-type=module -e "import { cpus } from 'os'; console.log(cpus)" 
+[Function: cpus]
+
+
+/** esm.mjs **/
+// 名前付きエクスポート
+export const a = 'a'
+
+// デフォルトエクスポート
+export default function() {}
+
+
+/** SHELL **/
+$ node -e "import('./esm.mjs').then(console.log)" 
+[Module] { a: 'a', default: [Function: default] }
+
+
+/** SHELL **/
+$ node -e "import('./cjs.js').then(console.log)" 
+[Module] { a: 'a', b: 'b', default: { a: 'a', b: 'b', c: 'c' } }
+
+
+/** json **/
+{
+  "exports": {
+    "./sub": {
+      // require('pkg/sub')で./lib/sub.cjsをロードする
+      "require": "./lib/sub.cjs",
+      // import 'pkg/sub'で./lib/sub.mjsをロードする
+      "default": "./lib/sub.mjs"
+    }
+  }
+}
+
+
+/** json **/
+{
+  // exports未対応の場合、require('pkg')で./main.cjsをロードする
+  "main": "./main.cjs",
+  "exports": {
+    ".": {
+      // require('pkg')で./main.cjsをロードする
+      "require": "./main.cjs",
+      // import 'pkg'で./main.mjsをロードする
+      "default": "./main.mjs"
+    }
+  }
+}
+
+
+/** json **/
+{
+  // exports未対応の場合、require('pkg')で./main.cjsをロードする
+  "main": "./main.cjs",
+  "exports": {
+    // require('pkg')で./main.cjsをロードする
+    "require": "./main.cjs",
+    // import 'pkg'で./main.mjsをロードする
+    "default": "./main.mjs"
+  }
+}
+
+
+/** json **/
+{
+  "exports": {
+    // Node.js環境の場合
+    "node": {
+      // import 'pkg'で./main-node.mjsをロードする
+      "import": "./main-node.mjs",
+      // require('pkg')で./main-node.cjsをロードする
+      "require": "./main-node.cjs"
+    },
+    // それ以外の場合、./main.mjsをロードする
+    "default": "./main.mjs"
+  }
+}
+
+
+/** pkg/package.json **/
+{
+  "main": "./main.cjs",
+  "exports": {
+    "require": "./main.cjs",
+    "default": "./wrapper.mjs"
+  }
+}
+
+
+/** pkg/main.cjs **/
+exports.date = new Date()
+
+
+/** pkg/wrapper.mjs **/
+import commonjsModule from './main.cjs'
+export const date = commonjsModule.date
+
+
+/** wat **/
+(module
+  (func (export "addTwo") (param i32 i32) (result i32)
+    local.get 0
+    local.get 1
+    i32.add))
+
+
+/** REPL **/
+# --experimental-repl-awaitフラグを指定してREPLを開く
+# ダウンロードしたtest.wasmのパスを引数にfs.promises.readFile()を実行
+> const waBytes = await fs.promises.readFile('./path/to/test.wasm') 
+undefined
+> const waModule = await WebAssembly.compile(waBytes) 
+undefined
+> const waInstance = await WebAssembly.instantiate(waModule) 
+undefined
+> waInstance.exports.addTwo(8, 5) 
+13
+
+
+/** REPL **/
+> const wa = await WebAssembly.instantiate(waBytes) 
+undefined
+> wa.module 
+Module [WebAssembly.Module] {}
+> wa.instance 
+Instance [WebAssembly.Instance] {}
+> wa.instance.exports.addTwo(8, 5) 
+13
+
+
+/** REPL **/
+# --experimental-wasm-modules、
+# --experimental-repl-awaitフラグを指定してREPLを開く
+# ダウンロードしたtest.wasmを動的インポート
+> const { addTwo } = await import('./path/to/test.wasm') 
+(node:33558) ExperimentalWarning: Importing Web Assembly modules is an 
+experimental feature. This feature could change at any time
+undefined
+> addTwo(8, 5) 
+13
+
+
+/** wat **/
+(module
+    (import
+        "wasi_unstable"
+        "fd_write"
+        (func $fd_write (param i32 i32 i32 i32) (result i32))
+    )
+    (memory 1)
+    (export "memory" (memory 0))
+    ;; 'hello world'をメモリに書き込む
+    (data (i32.const 8) "hello world\n")
+    (func $main (export "_start")
+        (i32.store (i32.const 0) (i32.const 8))
+        (i32.store (i32.const 4) (i32.const 12))
+        (call $fd_write
+            (i32.const 1) ;; file_descriptorの指定、1は標準出力
+            (i32.const 0)
+            (i32.const 1)
+            (i32.const 20)
+        )
+        drop
+    )
+)
+
+
+/** REPL **/
+# --experimental-wasi-unstable-preview1、
+# --experimental-repl-awaitフラグを指定してREPLを開く
+> const { WASI } = require('wasi') 
+undefined
+> (node:60425) ExperimentalWarning: WASI is an experimental feature. This 
+feature could change at any time
+
+> const wasi = new WASI() 
+undefined
+# ダウンロードしたwasi.wasmをfs.promises.readFile()で読む
+> const wasiBytes = await fs.promises.readFile('./path/to/wasi.wasm') 
+undefined
+# WebAssemblyの中でwasi_unstableが利用可能なようにインポートオブジェクトを作成
+> const importObject = { wasi_unstable: wasi.wasiImport } 
+undefined
+# WebAssembly.Instanceオブジェクトを生成
+> const { instance } = await WebAssembly.instantiate(wasiBytes, importObject) 
+undefined
+# 実行
+> wasi.start(instance) 
+hello world
+0

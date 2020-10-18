@@ -1,0 +1,631 @@
+// 5章に登場するサンプルコード
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+// ToDo一覧 
+const todos = [ 
+  { id: 1, title: 'ネーム', completed: false }, 
+  { id: 2, title: '下書き', completed: true } 
+] 
+
+// HTTPサーバの初期化 
+const server = http.createServer((req, res) => { 
+  // リクエストのURLやHTTPメソッドに応じて適切なレスポンスを返す 
+  if (req.url === '/api/todos') { 
+    if (req.method === 'GET') { 
+      // GETメソッドの場合、全todoをJSON形式で返す 
+      res.setHeader('Content-Type', 'application/json') 
+      return res.end(JSON.stringify(todos)) 
+    } 
+    // GET以外のHTTPメソッドはサポートしないため405（Method Not Allowed） 
+    res.statusCode = 405 
+  } else { 
+    // /api/todos以外のURLはないので404（Not Found） 
+    res.statusCode = 404 
+  } 
+  res.end() 
+}).listen(3000) // 3000ポートでリクエストを待機 
+
+// ctrl-D 
+undefined
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+http.request('http://localhost:3000/api/todos', res => { 
+  let responseData = '' 
+  console.log('statusCode', res.statusCode) 
+  res.on('data', chunk => responseData += chunk) 
+  res.on('end', () => console.log('responseData', JSON.parse(responseData))) 
+}).end() 
+
+// ctrl-D 
+ClientRequest {
+  # ... （省略）
+> statusCode 200
+responseData [
+  { id: 1, title: 'ネーム', completed: false },
+  { id: 2, title: '下書き', completed: true }
+]
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+http.request( 
+  'http://localhost:3000/api/todos', 
+  { method: 'POST' }, 
+  res => console.log('statusCode', res.statusCode) 
+).end() 
+
+// ctrl-D 
+ClientRequest {
+  # ... （省略）
+> statusCode 405
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+http.request( 
+  'http://localhost:3000/api/foo', 
+  res => console.log('statusCode', res.statusCode) 
+).end() 
+
+// ctrl-D 
+ClientRequest {
+  # ... （省略）
+> statusCode 404
+
+
+/** REPL **/
+> server.close() 
+Server {
+  # ... （省略）
+
+
+/** js **/
+'use strict'
+const express = require('express')
+const todos = [
+  { id: 1, title: 'ネーム', completed: false },
+  { id: 2, title: '下書き', completed: true }
+]
+const app = express()
+
+// /api/todosに対するGETリクエストを処理するハンドラ
+app.get('/api/todos', (req, res) =>
+  // ToDoの配列をJSON形式で返す
+  res.json(todos)
+)
+
+app.listen(3000)
+
+
+/** js **/
+const server = http.createServer((req, res) => {
+  if (req.url === '/api/todos') {
+    if (req.method === 'GET') {
+      // GETリクエストに対する処理を記述
+      // ...
+    }
+    if (req.method === 'POST') {
+      // POSTリクエストに対する処理を記述
+      // ...
+    }
+    // ...
+  }
+  // ...
+})
+
+
+/** js **/
+app.post('/api/todos', (req, res) => {
+  // POSTリクエストに対する処理を記述
+  // ...
+})
+
+
+/** js **/
+app.route('/api/todos')
+  .get((req, res) => {
+    // GETリクエストに対する処理を記述
+    // ...
+  })
+  .post((req, res) => {
+    // POSTリクエストに対する処理を記述
+    // ...
+  })
+
+
+/** routes/todos.js **/
+'use strict'
+const express = require('express')
+const router = express.Router()
+
+router.route('/')
+  .get((req, res) => {
+    // GETリクエストに対する処理を記述
+    // ...
+  })
+  .post((req, res) => {
+    // POSTリクエストに対する処理を記述
+    // ...
+  })
+
+module.exports = router
+
+
+/** app.js **/
+'use strict'
+const express = require('express')
+const app = express()
+
+// /api/todos以下のパスに対するリクエストのハンドリングを
+// ./routes/todosモジュールに委譲
+app.use('/api/todos', require('./routes/todos'))
+
+// ...
+
+app.listen(3000)
+
+
+/** js **/
+const server = http.createServer((req, res) => {
+  // /api/todos/の後ろに1つ以上の数字が続くパスかどうかを正規表現でチェック
+  const match = req.url.match(/^\/api\/todos\/(\d+)\/?$/)
+  if (match) {
+    // 数字部分を取り出す
+    const todoId = Number(match[1])
+    // ...
+  }
+  // ...
+})
+
+
+/** js **/
+app.get('/api/todos/:id(\\d+)', (req, res) => {
+  const todoId = Number(req.params.id)
+  // ...
+})
+
+
+/** REPL **/
+> new URL('/api/todos?completed=true', 'http://localhost:3000') 
+URL {
+  href: 'http://localhost:3000/api/todos?completed=true',
+  origin: 'http://localhost:3000',
+  protocol: 'http:',
+  username: '',
+  password: '',
+  host: 'localhost:3000',
+  hostname: 'localhost',
+  port: '3000',
+  pathname: '/api/todos',
+  search: '?completed=true',
+  searchParams: URLSearchParams { 'completed' => 'true' },
+  hash: ''
+}
+> _.searchParams.get('completed') 
+'true'
+
+
+/** js **/
+const server = http.createServer((req, res) => {
+  const url = new URL(req.url, `http://${req.headers.host}`)
+  if (url.pathname === '/api/todos') {
+    const completedFilter = url.searchParams.get('completed')
+    // ...
+  }
+  // ...
+})
+
+
+/** js **/
+app.get('/api/todos', (req, res) => {
+  const completedFilter = req.query.completed
+  // ...
+})
+
+
+/** ミドルウェア関数 **/
+function expressMiddleware (req, res, next) {
+  // ... （このミドルウェアの処理）
+  next() // 後続のミドルウェアに処理を受け渡す場合
+}
+
+
+/** js **/
+// すべてのパス、HTTPメソッドのリクエストに対してミドルウェアを適用
+app.use(expressMiddleware)
+
+// /api/todos以下のすべてのパス、HTTPメソッドのリクエストに対して
+// ミドルウェアを適用
+app.use('/api/todos', expressMiddleware)
+
+
+/** js **/
+app.get(
+  '/api/todos',
+  expressMiddleware, // 汎用的なミドルウェア関数
+  (req, res) => { // 特定のパス、HTTPメソッドに対応するミドルウェア関数
+    // ...
+  }
+)
+
+
+/** ミドルウェアでエラーを発生させる例 **/
+app.use((req, res, next) => {
+  if (!meetsRequirement(req)) {
+    // 同期処理で発生したエラー
+    next(new Error('不正なリクエスト'))
+    // または
+    // throw new Error('不正なリクエスト')
+  }
+  new Promise((resolve, reject) => {
+    // ...
+  }).catch(next) // 非同期処理で発生したエラー
+})
+
+
+/** エラーハンドリングミドルウェア関数 **/
+app.use((err, req, res, next) => {
+  // ... （エラーハンドリング）
+  // ステータスコードを設定してレスポンスを返す
+  res.status(500).json({ error: 'エラー' })
+  // または後続のエラーハンドリングミドルウェアに処理を委譲する
+  // next(err)
+})
+
+
+/** REPL **/
+> function fn3(a, b, c) {} 
+undefined
+> fn3.length 
+3
+> function fn4(a, b, c, d) {} 
+undefined
+> fn4.length 
+4
+
+
+/** js **/
+app.use(express.static('public'))
+
+
+/** --- **/
+public
+├── index.html   <- /index.html
+├─┬ css
+│　└── style.css <- /css/style.css
+├─┬ img
+│　└── logo.jpg  <- /img/logo.jpg
+└─┬ js
+　　└── main.js   <- /js/main.js
+
+
+/** js **/
+app.use('/static', express.static('public'))
+
+
+/** --- **/
+public
+├── index.html   <- /static/index.html
+├─┬ css
+│　└── style.css <- /static/css/style.css
+├─┬ img
+│　└── logo.jpg  <- /static/img/logo.jpg
+└─┬ js
+　　└── main.js   <- /static/js/main.js
+
+
+/** js **/
+app.use(express.json())
+app.use(express.urlencoded({ extended: true }))
+
+
+/** js **/
+const cookieParser = require('cookie-parser')
+
+app.use(cookieParser())
+
+
+/** js **/
+app.get('/some/path', (req, res) => {
+  // ...
+  // fooという名前のCookieにbarという値をセット
+  res.cookie('foo', 'bar')
+  // ...
+})
+
+
+/** js **/
+app.enable('trust proxy')
+
+
+/** SHELL **/
+$ npm init -y 
+# ... （省略）
+$ npm install express 
+
+
+/** todo-express/package.json **/
+{
+  // ...
+  "scripts": {
+    "start": "node app",
+    // ...
+  },
+  // ...
+}
+
+
+/** todo-express/app.js **/
+'use strict'
+const express = require('express')
+let todos = [
+  { id: 1, title: 'ネーム', completed: false },
+  { id: 2, title: '下書き', completed: true }
+]
+const app = express()
+
+// ToDo一覧の取得
+app.get('/api/todos', (req, res) => res.json(todos))
+
+app.listen(3000)
+
+
+/** SHELL **/
+$ npm install isomorphic-fetch 
+
+
+/** REPL **/
+# todo-expressディレクトリで"node --experimental-repl-await"でREPLを開く
+> require('isomorphic-fetch') 
+[Function]
+> fetch 
+[Function]
+
+
+/** REPL **/
+> await fetch('http://localhost:3000/api/todos') 
+Body {
+  # ... （省略）
+# HTTPステータスコード、JSONとしてパースしたボディを出力
+> console.log(_.status, await _.json()) 
+200 [
+  { id: 1, title: 'ネーム', completed: false },
+  { id: 2, title: '下書き', completed: true }
+]
+undefined
+
+
+/** REPL **/
+> await fetch('http://localhost:3000/api/foo') 
+Body {
+  # ... （省略）
+# HTTPステータスコード、ボディの文字列を出力
+> console.log(_.status, await _.text()) 
+404 '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n' +
+  '<title>Error</title>\n</head>\n<body>\n<pre>Cannot GET /api/foo</pre>\n' +
+  '</body>\n</html>\n'
+undefined
+
+
+/** todo-express/app.js **/
+// ...
+const app = express()
+
+// ToDo一覧の取得
+app.get('/api/todos', (req, res) => {
+  if (!req.query.completed) {
+    return res.json(todos)
+  }
+  // completedクエリパラメータを指定された場合はToDoをフィルタリング
+  const completed = req.query.completed === 'true'
+  res.json(todos.filter(todo => todo.completed === completed))
+})
+
+app.listen(3000)
+
+
+/** REPL **/
+> await fetch('http://localhost:3000/api/todos?completed=true') 
+Body {
+  # ... （省略）
+> console.log(_.status, await _.json()) 
+200 [ { id: 2, title: '下書き', completed: true } ]
+undefined
+> await fetch('http://localhost:3000/api/todos?completed=false') 
+Body {
+  # ... （省略）
+> console.log(_.status, await _.json()) 
+200 [ { id: 1, title: 'ネーム', completed: false } ]
+undefined
+
+
+/** todo-express/app.js **/
+// ...
+const app = express()
+
+app.use(express.json()) // 追加
+
+// ToDo一覧の取得
+app.get('/api/todos', (req, res) => {
+  // ...
+})
+
+// ToDoのIDの値を管理するための変数
+let id = 2
+
+// ToDoの新規登録
+app.post('/api/todos', (req, res, next) => {
+  const { title } = req.body
+  if (typeof title !== 'string' || !title) {
+    // titleがリクエストに含まれない場合はステータスコード400（Bad Request）
+    const err = new Error('title is required')
+    err.statusCode = 400
+    return next(err)
+  }
+  // ToDoの作成
+  const todo = { id: id += 1, title, completed: false }
+  todos.push(todo)
+  // ステータスコード201（Created）で結果を返す
+  res.status(201).json(todo)
+})
+
+// エラーハンドリングミドルウェア
+app.use((err, req, res, next) => {
+  console.error(err)
+  res.status(err.statusCode || 500).json({ error: err.message })
+})
+
+app.listen(3000)
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+await fetch('http://localhost:3000/api/todos', { 
+  method: 'POST', 
+  headers: { 
+    'Content-Type': 'application/json' 
+  }, 
+  body: JSON.stringify({ title: 'ペン入れ' }) 
+}) 
+
+// ctrl-D 
+Body {
+  # ... （省略）
+> console.log(_.status, await _.json()) 
+201, { id: 3, title: 'ペン入れ', completed: false }
+undefined
+
+
+/** REPL **/
+> await fetch('http://localhost:3000/api/todos') 
+Body {
+  # ... （省略）
+> console.log(_.status, await _.json()) 
+200 [
+  { id: 1, title: 'ネーム', completed: false },
+  { id: 2, title: '下書き', completed: true },
+  { id: 3, title: 'ペン入れ', completed: false }
+]
+undefined
+
+
+/** REPL **/
+> await fetch('http://localhost:3000/api/todos', { method: 'POST' }) 
+Body {
+  # ... （省略）
+> console.log(_.status, await _.json()) 
+400 { error: 'title is required' }
+undefined
+
+
+/** SHELL **/
+$ npm install react react-dom next 
+
+
+/** todo-express/components/Todos.js **/
+// 外部のモジュールで公開されたものを利用するためのimport文
+import { useEffect, useState } from 'react'
+import Link from 'next/link'
+import Head from 'next/head'
+import 'isomorphic-fetch'
+
+// 各ページに関する情報の定義
+const pages = {
+  index: { title: 'すべてのToDo', fetchQuery: '' },
+  active: { title: '未完了のToDo', fetchQuery: '?completed=false' },
+  completed: { title: '完了したToDo', fetchQuery: '?completed=true' }
+}
+// CSRでページを切り替えるためのリンク
+const pageLinks = Object.keys(pages).map((page, index) =>
+  <Link href={`/${page === 'index' ? '' : page}`} key={index}>
+    <a style={{ marginRight: 10 }}>{pages[page].title}</a>
+  </Link>
+)
+
+// Reactコンポーネントを実装し、外部のモジュールで利用可能なようexport文で公開
+export default function Todos(props) {
+  const { title, fetchQuery } = pages[props.page]
+
+  // コンポーネントの状態の初期化と、propsの値に応じた更新
+  const [todos, setTodos] = useState([])
+  useEffect(() => {
+    fetch(`/api/todos${fetchQuery}`)
+      .then(async res => res.ok
+        ? setTodos(await res.json())
+        : alert(await res.text())
+      )
+  }, [props.page])
+
+  // このコンポーネントが描画するUIをJSX構文で記述して返す
+  return (
+    <>
+      <Head>
+        <title>{title}</title>
+      </Head>
+      <h1>{title}</h1>
+      {/* ToDo一覧の表示 */}
+      <ul>
+        {todos.map(({ id, title, completed }) =>
+          <li key={id}>
+            <span style={completed ? { textDecoration:  'line-through' } : {}}>
+              {title}
+            </span>
+          </li>
+        )}
+      </ul>
+      <div>{pageLinks}</div>
+    </>
+  )
+}
+
+
+/** todo-express/pages/index.js **/
+import Todos from '../components/Todos'
+
+export default function Index() {
+  return <Todos page="index"/>
+}
+
+
+/** todo-express/pages/active.js **/
+import Todos from '../components/Todos'
+
+export default function Active() {
+  return <Todos page="active"/>
+}
+
+
+/** todo-express/pages/completed.js **/
+import Todos from '../components/Todos'
+
+export default function Completed() {
+  return <Todos page="completed"/>
+}
+
+
+/** todo-express/app.js **/
+
+// ...
+app.listen(3000)
+
+// Next.jsによるルーティングのためこれ以降を追記
+const next = require('next')
+const dev = process.env.NODE_ENV !== 'production'
+const nextApp = next({ dev })
+
+nextApp.prepare().then(
+  // pagesディレクトリ内の各Reactコンポーネントに対するサーバサイドルーティング
+  () => app.get('*', nextApp.getRequestHandler()),
+  err => {
+    console.error(err)
+    process.exit(1)
+  }
+)

@@ -1,0 +1,1000 @@
+// 付録Cに登場するサンプルコード
+
+/** REPL **/
+> 7 * 24 * 60 * 60 
+604800
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+let product = 1 
+for (let i = 1; i <= 10; i++) { 
+  product *= i 
+  console.log(`${i}までの積: ${product}`) 
+} 
+product 
+
+// ctrl-D 
+1までの積: 1
+2までの積: 2
+3までの積: 6
+4までの積: 24
+5までの積: 120
+6までの積: 720
+7までの積: 5040
+8までの積: 40320
+9までの積: 362880
+10までの積: 3628800
+3628800
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+new Promise((resolve, reject) => { 
+  resolve('foo') 
+  resolve('bar') 
+  reject(new Error('エラー')) 
+}).then( 
+  // onFulfilled 
+  result => console.log('onFulfilled', result), 
+  // onRejected 
+  err => console.log('onRejected', err) 
+) 
+
+// ctrl-D 
+Promise { <pending> }
+> onFulfilled foo
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+new Promise((resolve, reject) => { 
+  reject(new Error('エラー')) 
+  resolve('foo') 
+  reject(new Error('bar')) 
+}).then( 
+  // onFulfilled 
+  result => console.log('onFulfilled', result), 
+  // onRejected 
+  err => console.log('onRejected', err) 
+) 
+
+// ctrl-D 
+Promise { <pending> }
+> onRejected Error: エラー
+# ... （省略）
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+// Promise版のparseJSONAsync 
+function parseJSONAsync(json) { 
+  return new Promise((resolve, reject) => 
+    setTimeout(() => { 
+      try { 
+        resolve(JSON.parse(json)) 
+      } catch (err) { 
+        reject(err) 
+      } 
+    }, 1000) 
+  ) 
+} 
+
+// 問題に対する回答となる実装 
+const parseJSONAsyncCache = {} 
+function parseJSONAsyncWithCache(json) { 
+  let cached = parseJSONAsyncCache[json] 
+  if (!cached) { 
+    cached = parseJSONAsync(json) 
+    parseJSONAsyncCache[json] = cached 
+  } 
+  return cached 
+} 
+
+// 動作確認 
+parseJSONAsyncWithCache('{"message": "Hello", "to": "World"}') 
+  .then(result => console.log('1回目の結果', result)) 
+  .then(() => { 
+    const promise = parseJSONAsyncWithCache( 
+      '{"message": "Hello", "to": "World"}' 
+    ) 
+    console.log('2回目の呼び出し完了') 
+    return promise 
+  }) 
+  .then(result => console.log('2回目の結果', result)) 
+console.log('1回目の呼び出し完了') 
+
+// ctrl-D 
+1回目の呼び出し完了
+undefined
+> 1回目の結果 { message: 'Hello', to: 'World' }
+# キャッシュ済みの結果も非同期的に返されるため、ログ出力の順番が守られる
+2回目の呼び出し完了
+2回目の結果 { message: 'Hello', to: 'World' }
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+async function asyncSum(promiseArr) { 
+  let sum = 0 
+  const arr = await Promise.allSettled(promiseArr) 
+  for (const e of arr) { 
+    if (e.status === 'fulfilled') {
+      sum += e.value 
+    } 
+  } 
+  return sum 
+} 
+
+// 動作確認 
+asyncSum( 
+  [1, 2, 3, 4].map(e => e % 2 === 0 
+    ? Promise.resolve(e) 
+    : Promise.reject(new Error('エラー')) 
+  ) 
+).then(console.log) 
+
+// ctrl-D 
+Promise { <pending> }
+> 6
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+async function asyncSum(promiseArr) { 
+  let sum = 0 
+  const arr = await Promise.all(promiseArr.map(e => e.catch(() => 0))) 
+  for (const e of arr) { 
+    sum += e 
+  } 
+  return sum 
+} 
+
+// 動作確認 
+asyncSum( 
+  [1, 2, 3, 4].map(e => e % 2 === 0 
+    ? Promise.resolve(e) 
+    : Promise.reject(new Error('エラー')) 
+  ) 
+).then(console.log) 
+
+// ctrl-D 
+Promise { <pending> }
+> 6
+
+
+/** REPL **/
+> const onEventEmitter = new events.EventEmitter() 
+undefined
+> const onAsyncIterable = events.on(onEventEmitter, 'eventA') 
+undefined
+# リスナが1つ登録されることを確認
+> onEventEmitter.listeners('eventA') 
+[ [Function: eventHandler] ]
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+(async () => { 
+  for await (const a of onAsyncIterable) { 
+    // 何もしない 
+  } 
+})().catch(err => console.error('for await...ofでエラー', err)) 
+
+// ctrl-D 
+Promise { <pending> }
+> onEventEmitter.emit('error', new Error('エラー')) 
+true
+> for await...ofでエラー Error: エラー
+  # ... （省略）
+
+# リスナの登録が解除されることを確認
+> onEventEmitter.listeners('eventA') 
+[]
+
+
+/** REPL **/
+> const onceEventEmitter = new events.EventEmitter() 
+undefined
+> const oncePromise = events.once(onceEventEmitter, 'eventB') 
+undefined
+> oncePromise.catch(err => console.error('Promiseインスタンスの拒否', err)) 
+Promise { <pending> }
+> onceEventEmitter.emit('error', new Error('エラー')) 
+true
+> Promiseインスタンスの拒否 Error: エラー
+  # ... （省略）
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+function* helloGenerator() { 
+  for (const language of ['JavaScript', 'Python', 'Java', 'C#']) { 
+    yield `Hello, ${language}!\n` 
+  } 
+} 
+const helloReadableStreamFromGenerator = 
+  stream.Readable.from(helloGenerator()) 
+
+// ctrl-D 
+undefined
+
+
+/** REPL **/
+> helloReadableStreamFromGenerator.pipe(fs.createWriteStream('dest.txt')) 
+WriteStream {
+  # ... （省略）
+
+
+/** txt **/
+Hello, JavaScript!
+Hello, Python!
+Hello, Java!
+Hello, C#!
+
+
+/** todo-express/app.js **/
+// ...
+
+// 指定されたIDのToDoを取得するためのミドルウェア
+app.use('/api/todos/:id(\\d+)', (req, res, next) => {
+  const targetId = Number(req.params.id)
+  const todo = todos.find(todo => todo.id === targetId)
+  if (!todo) {
+    const err = new Error('ToDo not found')
+    err.statusCode = 404
+    return next(err)
+  }
+  req.todo = todo
+  next()
+})
+
+// エラーハンドリングミドルウェア
+app.use((err, req, res, next) => {
+  // ...
+})
+
+// ...
+
+
+/** todo-express/app.js **/
+// 問5-1で実装したミドルウェア
+app.use('/api/todos/:id(\\d+)', (req, res, next) => {
+  // ...
+})
+
+// ToDoのCompletedの設定、解除
+app.route('/api/todos/:id(\\d+)/completed')
+  .put((req, res) => {
+    req.todo.completed = true
+    res.json(req.todo)
+  })
+  .delete((req, res) => {
+    req.todo.completed = false
+    res.json(req.todo)
+  })
+
+// ...
+
+
+/** todo-express/app.js **/
+// ...
+
+// 問5-2で実装したAPI
+app.route('/api/todos/:id(\\d+)/completed')
+// ...
+
+// ToDoの削除
+app.delete('/api/todos/:id(\\d+)', (req, res) => {
+  todos = todos.filter(todo => todo !== req.todo)
+  res.status(204).end()
+})
+
+// ...
+
+
+/** REPL **/
+# isomorphic-fetchをnpm installしたディレクトリで
+# --experimental-repl-awaitフラグを指定してREPLを開く
+> require('isomorphic-fetch') 
+[Function]
+> const baseUrl = 'http://localhost:3000/api/todos' 
+undefined
+# 初期のToDo一覧の確認
+> await fetch(baseUrl) 
+Body {
+  # ... （省略）
+> console.log(_.status, await _.text()) 
+200 [
+  { id: 1, title: 'ネーム', completed: false },
+  { id: 2, title: '下書き', completed: true }
+]
+undefined
+
+
+/** REPL **/
+# ID 1のToDoを完了
+> await fetch(`${baseUrl}/1/completed`, { method: 'PUT' }) 
+Body {
+  # ... （省略）
+> console.log(_.status, await _.text()) 
+200 { id: 1, title: 'ネーム', completed: true }
+undefined
+# ToDo一覧の確認
+> await fetch(baseUrl).then(res => res.json()) 
+[
+  { id: 1, title: 'ネーム', completed: true },
+  { id: 2, title: '下書き', completed: true }
+]
+
+
+/** REPL **/
+# ID 2のToDoの完了状態を解除
+> await fetch(`${baseUrl}/2/completed`, { method: 'DELETE' }) 
+Body {
+  # ... （省略）
+> console.log(_.status, await _.text()) 
+200 { id: 2, title: '下書き', completed: false }
+undefined
+# ToDo一覧の確認
+> await fetch(baseUrl).then(res => res.json()) 
+[
+  { id: 1, title: 'ネーム', completed: true },
+  { id: 2, title: '下書き', completed: false }
+]
+
+
+/** REPL **/
+# ID 1のToDoを削除
+> await fetch(`${baseUrl}/1`, { method: 'DELETE' }).then(res => res.status) 
+204
+# ToDo一覧の確認
+> await fetch(baseUrl).then(res => res.json()) 
+[ { id: 2, title: '下書き', completed: false } ]
+
+
+/** todo-sse/app.js **/
+// ...
+
+// ToDoのCompletedの設定、解除
+app.route('/api/todos/:id(\\d+)/completed')
+  .put((req, res) => {
+    // ...
+    onUpdateTodos()
+  })
+  .delete((req, res) => {
+    // ...
+    onUpdateTodos()
+  })
+
+// ToDoの削除
+app.delete('/api/todos/:id(\\d+)', (req, res) => {
+  // ...
+  onUpdateTodos()
+})
+
+// ...
+
+
+/** SHELL **/
+$ npm init -y 
+# ... （省略）
+$ npm install next react react-dom ws 
+
+
+/** todo-ws/package.json **/
+{
+  // ...
+  "scripts": {
+    "start": "node app",
+    // ...
+  },
+  // ...
+}
+
+
+/** todo-ws/app.js（WebSocket.Serverインスタンスの生成） **/
+'use strict'
+const http = require('http')
+const next = require('next')
+// const Server = require('socket.io')
+const WebSocket = require('ws')
+
+// ...
+
+nextApp.prepare().then(
+  () => {
+    // Next.jsのリクエストハンドラを引数にhttp.createServer()を実行
+    const server = http.createServer(nextApp.getRequestHandler()).listen(3000)
+    // Socket.IOのServerインスタンス生成処理を削除
+    // const io = Server(server)
+    // WebSocket.Serverインスタンスを生成
+    const ws = new WebSocket.Server({ server })
+    // 接続中の全クライアントに現在のToDo一覧を送信する関数
+    function sendTodosToOpenClient() {
+      ws.clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(JSON.stringify(todos))
+        }
+      })
+    }
+    // ...
+  },
+  // ...
+)
+
+
+/** todo-ws/app.js（connectionイベントのハンドリング） **/
+// ...
+
+// /todos名前空間で接続待機
+// const ioTodos = io.of('/todos')
+// ioTodos.on('connection', socket => {
+ws.on('connection', socket => {
+  console.log('connected')
+  // 接続したクライアントにToDo一覧を送信
+  // socket.emit('todos', todos)
+  socket.send(JSON.stringify(todos))
+
+  // ...
+})
+// ...
+
+
+/** todo-ws/app.js（クライアントから受信したメッセージの処理） **/
+// ...
+
+// 接続したクライアントからの各種イベントに対応
+// socket
+//   // ToDo作成
+//   .on('createTodo', title => {
+//     ...
+//   })
+//   // ToDoのcompletedの更新
+//   .on('updateCompleted', title => {
+//     ...
+//   })
+//   // ToDo削除
+//   .on('deleteTodo', title => {
+//     ...
+//   })
+socket.on('message', message => {
+  const { type, data } = JSON.parse(message)
+  switch(type) {
+    // ToDo作成
+    case 'createTodo': {
+      const title = data
+      if (typeof title !== 'string' || !title) {
+        return
+      }
+      const todo = { id: id += 1, title, completed: false }
+      todos.push(todo)
+      return sendTodosToOpenClient()
+    }
+    // ToDoのcompletedの更新
+    case 'updateCompleted': {
+      const { id, completed } = data
+      todos = todos.map(todo =>
+        todo.id === id ? { ...todo, completed } : todo
+      )
+      return sendTodosToOpenClient()
+    }
+    // ToDo削除
+    case 'deleteTodo': {
+      const id = data
+      todos = todos.filter(todo => todo.id !== id)
+      return sendTodosToOpenClient()
+    }
+  }
+})
+
+// ...
+
+
+/** todo-ws/components/Todos.js **/
+import { useEffect, useState } from 'react'
+import Link from 'next/link'
+import Head from 'next/head'
+// import io from 'socket.io-client'
+
+// ...
+
+export default function Todos(props) {
+  // ...
+
+  useEffect(() => {
+    // socketの生成
+    // const socket = io('/todos')
+    const socket = new WebSocket('ws://localhost:3000')
+    // socket.on('todos', todos => {
+    socket.addEventListener('message', message => {
+      const todos = JSON.parse(message.data)
+      setTodos(
+        typeof completed === 'undefined'
+          ? todos
+          : todos.filter(todo => todo.completed === completed)
+      )
+    })
+    setSocket(socket)
+    // コンポーネントのクリーンアップ時にsocketをクローズ
+    return () => socket.close()
+  }, [props.page])
+
+  // ...
+}
+
+
+/** js **/
+// JSX
+return (
+  <>
+    {/* ... */}
+    <label>
+      新しいTodoを入力
+      <input onKeyPress={e => {
+        // 接続状態のチェック
+        if (socket.readyState !== WebSocket.OPEN) {
+          return
+        }
+        // Enterキーが押されたらToDoを登録する
+        const title = e.target.value
+        if (e.key !== 'Enter' || !title) {
+          return
+        }
+        e.target.value = ''
+        socket.send(JSON.stringify({ type: 'createTodo', data: title }))
+      }}/>
+    </label>
+    {/* ToDo一覧 */}
+    <ul>
+      {todos.map(({ id, title, completed }) =>
+        <li key={id}>
+          <label style={completed ? { textDecoration: 'line-through' } : {}}>
+            <input
+              type="checkbox"
+              checked={completed}
+              onChange={e =>
+                socket.readyState === WebSocket.OPEN &&
+                socket.send(JSON.stringify({
+                  type: 'updateCompleted',
+                  data: { id, completed: e.target.checked }
+                }))
+              }
+            />
+            {title}
+          </label>
+          <button onClick={() =>
+            socket.readyState === WebSocket.OPEN &&
+            socket.send(JSON.stringify({ type: 'deleteTodo', data: id }))}
+          >削除</button>
+        </li>
+      )}
+    </ul>
+    {/* ... */}
+  </>
+)
+
+
+/** js **/
+[
+  { id: '1', title: 'ネーム', completed: false },
+  { id: '2', title: '下書き', completed: false }
+]
+
+
+/** --- **/
+id,title,completed
+1,ネーム,false
+2,下書き,false
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+function writeTodosToCsv(file, todos) { 
+  return fs.promises.writeFile(file, `id,title,completed\n${todos.map( 
+    ({ id, title, completed }) => `${id},${title},${completed}` 
+  ).join('\n')}`) 
+} 
+
+// ctrl-D 
+undefined
+# 挙動確認
+> const todos = [ 
+...   { id: '1', title: 'ネーム', completed: false }, 
+...   { id: '2', title: '下書き', completed: false } 
+... ] 
+undefined
+> await writeTodosToCsv('todos.csv', todos) 
+undefined
+> console.log(await fs.promises.readFile('todos.csv', 'utf8')) 
+id,title,completed
+1,ネーム,false
+2,下書き,false
+undefined
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+async function parseTodosFromCsv(file) { 
+  const content = await fs.promises.readFile(file, 'utf8') 
+  const [propsLine, ...todoLines] = content.split(/\n/) 
+  const props = propsLine.split(',') 
+  return todoLines.map(line => { 
+    const values = line.split(',') 
+    const todo = {} 
+    for (let i = 0; i < props.length; i++) { 
+      todo[props[i]] = props[i] === 'completed' 
+        // completedの場合文字列からbooleanへの変換を行う 
+        ? values[i] === 'true' 
+        : values[i] 
+    } 
+    return todo 
+  }) 
+} 
+
+// ctrl-D 
+undefined
+# 挙動確認
+> await parseTodosFromCsv('todos.csv') 
+[
+  { id: '1', title: 'ネーム', completed: false },
+  { id: '2', title: '下書き', completed: false }
+]
+
+
+/** js **/
+// statement.run()をPromise化する関数
+function promisifyStatementRun(statement) {
+  return function() {
+    return new Promise((resolve, reject) =>
+      statement.run.apply(statement, [
+        ...arguments,
+        function(err) {
+          err ? reject(err) : resolve(this)
+        }
+      ])
+    )
+  }
+}
+
+const updateStatementRuns = {
+  // titleとcompletedの両方を更新するUPDATE文
+  both: promisifyStatementRun(
+    db.prepare('UPDATE todo SET title = ?, completed = ? WHERE id = ?')
+  ),
+  // titleのみ更新するUPDATE文
+  title: promisifyStatementRun(
+    db.prepare('UPDATE todo SET title = ? WHERE id = ?')
+  ),
+  // completedのみ更新するUPDATE文
+  completed: promisifyStatementRun(
+    db.prepare('UPDATE todo SET completed = ? WHERE id = ?')
+  )
+}
+// SELECT文
+const selectStatement = db.prepare('SELECT * FROM todo WHERE id = ?')
+const selectStatementGet = promisify(
+  selectStatement.get.bind(selectStatement)
+)
+
+// update()の実装
+exports.update = (id, update) => {
+  let updateStatementRun, values
+  if (update.title && update.completed) {
+    updateStatementRun = updateStatementRuns.both
+    values = [update.title, update.completed, id]
+  } else if (update.title) {
+    updateStatementRun = updateStatementRuns.title
+    values = [update.title, id]
+  } else if (update.completed) {
+    updateStatementRun = updateStatementRuns.completed
+    values = [update.completed, id]
+  } else {
+    return Promise.reject(
+      new Error('`update` should contain title and/or completed')
+    )
+  }
+  return updateStatementRun(values)
+    .then(({ changes }) => changes === 1
+      ? selectStatementGet(id).then(rowToTodo)
+      : null
+    )
+}
+
+
+/** PUT /api/todos/:id/completedのテスト（Mocha） **/
+  // POST /api/todosのテストのあとに次のコードを追加
+  describe('PUT /api/todos/:id/completed', () => {
+    it(
+      'パスで指定したIDのToDoのcompletedをtrueに設定し、更新後のToDoを返す',
+      async () => {
+        const todo = { id: 'a', title: 'ネーム', completed: true }
+        // スタブの生成
+        sinon.stub(fileSystem, 'update').resolves(todo)
+
+        // リクエストの送信
+        const res = await chai.request(app).put('/api/todos/a/completed')
+
+        // レスポンスのアサーション
+        assert.strictEqual(res.status, 200)
+        assert.deepEqual(res.body, todo)
+        // update()の引数のアサーション
+        assert.calledWith(fileSystem.update, 'a', { completed: true })
+      }
+    )
+    it('update()がnullを返したら404エラーを返す', async () => {
+      // スタブの生成
+      sinon.stub(fileSystem, 'update').resolves(null)
+
+      // リクエストの送信
+      const res = await chai.request(app).put('/api/todos/a/completed')
+
+      // レスポンスのアサーション
+      assert.strictEqual(res.status, 404)
+      assert.deepEqual(res.body, { error: 'ToDo not found' })
+    })
+    it('update()が失敗したらエラーを返す', async () => {
+      // スタブの生成
+      sinon.stub(fileSystem, 'update').rejects(new Error('update()失敗'))
+
+      // リクエストの送信
+      const res = await chai.request(app).put('/api/todos/a/completed')
+
+      // レスポンスのアサーション
+      assert.strictEqual(res.status, 500)
+      assert.deepEqual(res.body, { error: 'update()失敗' })
+    })
+  })
+  // ...
+
+
+/** PUT /api/todos/:id/completedのテスト（Jest） **/
+  // POST /api/todosのテストのあとに次のコードを追加
+  describe('PUT /api/todos/:id/completed', () => {
+    it(
+      'パスで指定したIDのToDoのcompletedをtrueに設定し、更新後のToDoを返す',
+      async () => {
+        const todo = { id: 'a', title: 'ネーム', completed: true }
+        // モックが返す値の指定
+        fileSystem.update.mockResolvedValue(todo)
+
+        // リクエストの送信
+        const res = await request(app).put('/api/todos/a/completed')
+
+        // レスポンスのアサーション
+        expect(res.status).toBe(200)
+        expect(res.body).toEqual(todo)
+        // update()の引数のアサーション
+        expect(fileSystem.update)
+          .toHaveBeenCalledWith('a', { completed: true })
+      }
+    )
+    it('update()がnullを返したら404エラーを返す', async () => {
+      // モックが返す値の指定
+      fileSystem.update.mockResolvedValue(null)
+
+      // リクエストの送信
+      const res = await request(app).put('/api/todos/a/completed')
+
+      // レスポンスのアサーション
+      expect(res.status).toBe(404)
+      expect(res.body).toEqual({ error: 'ToDo not found' })
+    })
+    it('update()が失敗したらエラーを返す', async () => {
+      // モックが返す値の指定
+      fileSystem.update.mockRejectedValue(new Error('update()失敗'))
+
+      // リクエストの送信
+      const res = await request(app).put('/api/todos/a/completed')
+
+      // レスポンスのアサーション
+      expect(res.status).toBe(500)
+      expect(res.body).toEqual({ error: 'update()失敗' })
+    })
+  })
+  // ...
+
+
+/** DELETE /api/todos/:id/completedのテスト（Mocha） **/
+  // PUT /api/todos/:id/completedのテストのあとに次のコードを追加
+  describe('DELETE /api/todos/:id/completed', () => {
+    it(
+      'パスで指定したIDのToDoのcompletedをfalseに設定し、更新後のToDoを返す',
+      async () => {
+        const todo = { id: 'a', title: 'ネーム', completed: false }
+        // スタブの生成
+        sinon.stub(fileSystem, 'update').resolves(todo)
+
+        // リクエストの送信
+        const res = await chai.request(app).delete('/api/todos/a/completed')
+
+        // レスポンスのアサーション
+        assert.strictEqual(res.status, 200)
+        assert.deepEqual(res.body, todo)
+        // update()の引数のアサーション
+        assert.calledWith(fileSystem.update, 'a', { completed: false })
+      }
+    )
+    it('update()がnullを返したら404エラーを返す', async () => {
+      // スタブの生成
+      sinon.stub(fileSystem, 'update').resolves(null)
+
+      // リクエストの送信
+      const res = await chai.request(app).delete('/api/todos/a/completed')
+
+      // レスポンスのアサーション
+      assert.strictEqual(res.status, 404)
+      assert.deepEqual(res.body, { error: 'ToDo not found' })
+    })
+    it('update()が失敗したらエラーを返す', async () => {
+      // スタブの生成
+      sinon.stub(fileSystem, 'update').rejects(new Error('update()失敗'))
+
+      // リクエストの送信
+      const res = await chai.request(app).delete('/api/todos/a/completed')
+
+      // レスポンスのアサーション
+      assert.strictEqual(res.status, 500)
+      assert.deepEqual(res.body, { error: 'update()失敗' })
+    })
+  })
+  // ...
+
+
+/** DELETE /api/todos/:id/completedのテスト（Jest） **/
+  // PUT /api/todos/:id/completedのテストのあとに次のコードを追加
+  describe('DELETE /api/todos/:id/completed', () => {
+    it(
+      'パスで指定したIDのToDoのcompletedをfalseに設定し、更新後のToDoを返す',
+      async () => {
+        const todo = { id: 'a', title: 'ネーム', completed: false }
+        // モックが返す値の指定
+        fileSystem.update.mockResolvedValue(todo)
+
+        // リクエストの送信
+        const res = await request(app).delete('/api/todos/a/completed')
+
+        // レスポンスのアサーション
+        expect(res.status).toBe(200)
+        expect(res.body).toEqual(todo)
+        // update()の引数のアサーション
+        expect(fileSystem.update)
+          .toHaveBeenCalledWith('a', { completed: false })
+      }
+    )
+    it('update()がnullを返したら404エラーを返す', async () => {
+      // モックが返す値の指定
+      fileSystem.update.mockResolvedValue(null)
+
+      // リクエストの送信
+      const res = await request(app).delete('/api/todos/a/completed')
+
+      // レスポンスのアサーション
+      expect(res.status).toBe(404)
+      expect(res.body).toEqual({ error: 'ToDo not found' })
+    })
+    it('update()が失敗したらエラーを返す', async () => {
+      // モックが返す値の指定
+      fileSystem.update.mockRejectedValue(new Error('update()失敗'))
+
+      // リクエストの送信
+      const res = await request(app).delete('/api/todos/a/completed')
+
+      // レスポンスのアサーション
+      expect(res.status).toBe(500)
+      expect(res.body).toEqual({ error: 'update()失敗' })
+    })
+  })
+  // ...
+
+
+/** DELETE /api/todos/:idのテスト（Mocha） **/
+  // DELETE /api/todos/:id/completedのテストのあとに次のコードを追加
+  describe('DELETE /api/todos/:id', () => {
+    it('パスで指定したIDのToDoを削除する', async () => {
+      // スタブの生成
+      sinon.stub(fileSystem, 'remove').resolves('a')
+
+      // リクエストの送信
+      const res = await chai.request(app).delete('/api/todos/a')
+
+      // レスポンスのアサーション
+      assert.strictEqual(res.status, 204)
+      assert.deepEqual(res.body, {})
+      // remove()の引数のアサーション
+      assert.calledWith(fileSystem.remove, 'a')
+    })
+    it('remove()がnullを返したら404エラーを返す', async () => {
+      // スタブの生成
+      sinon.stub(fileSystem, 'remove').resolves(null)
+
+      // リクエストの送信
+      const res = await chai.request(app).delete('/api/todos/a')
+
+      // レスポンスのアサーション
+      assert.strictEqual(res.status, 404)
+      assert.deepEqual(res.body, { error: 'ToDo not found' })
+    })
+    it('remove()が失敗したらエラーを返す', async () => {
+      // スタブの生成
+      sinon.stub(fileSystem, 'remove').rejects(new Error('remove()失敗'))
+
+      // リクエストの送信
+      const res = await chai.request(app).delete('/api/todos/a')
+
+      // レスポンスのアサーション
+      assert.strictEqual(res.status, 500)
+      assert.deepEqual(res.body, { error: 'remove()失敗' })
+    })
+  })
+  // ...
+
+
+/** DELETE /api/todos/:idのテスト（Jest） **/
+  // DELETE /api/todos/:id/completedのテストのあとに次のコードを追加
+  describe('DELETE /api/todos/:id', () => {
+    it('パスで指定したIDのToDoを削除する', async () => {
+      // スタブの生成
+      fileSystem.remove.mockResolvedValue('a')
+
+      // リクエストの送信
+      const res = await request(app).delete('/api/todos/a')
+
+      // レスポンスのアサーション
+      expect(res.status).toBe(204)
+      expect(res.body).toEqual({})
+      // remove()の引数のアサーション
+      expect(fileSystem.remove).toHaveBeenCalledWith('a')
+    })
+    it('remove()がnullを返したら404エラーを返す', async () => {
+      // スタブの生成
+      fileSystem.remove.mockResolvedValue(null)
+
+      // リクエストの送信
+      const res = await request(app).delete('/api/todos/a')
+
+      // レスポンスのアサーション
+      expect(res.status).toBe(404)
+      expect(res.body).toEqual({ error: 'ToDo not found' })
+    })
+    it('remove()が失敗したらエラーを返す', async () => {
+      // スタブの生成
+      fileSystem.remove.mockRejectedValue(new Error('remove()失敗'))
+
+      // リクエストの送信
+      const res = await request(app).delete('/api/todos/a')
+
+      // レスポンスのアサーション
+      expect(res.status).toBe(500)
+      expect(res.body).toEqual({ error: 'remove()失敗' })
+    })
+  })
+  // ...
+
+
+/** js **/
+delete require.cache[require.resolve('./path/to/module')]
+
+
+/** js **/
+import './path/to/module.mjs?foo=1'
+
+
+/** js **/
+import('./path/to/module.mjs').then(esm => {
+  // 何らかの処理
+})
+
+
+/** js **/
+// 通常のCommonJSモジュール
+import cjs from './path/to/module.js'
+// Node.jsコアのモジュール
+import { readFile } from 'fs'

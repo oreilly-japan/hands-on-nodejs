@@ -1,0 +1,1534 @@
+// 2章に登場するサンプルコード
+
+/** js **/
+const 金額 = バーコードリーダー.読む(弁当) // ❶
+const 温まった弁当 = 電子レンジ.チン(弁当) // ❷
+レジ.会計する(金額)
+商品を渡す(温まった弁当)
+
+
+/** js **/
+num = num + 1
+
+
+/** js **/
+const 金額 = バーコードリーダー.読む(弁当) // ❶
+電子レンジ.チン( // ❷
+  弁当,
+  // 第二引数に関数として完了後のタスクを指定
+  温まった弁当 => 商品を渡す(温まった弁当)
+)
+レジ.会計する(金額)
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+setTimeout( 
+  () => console.log('1秒経過しました'), // コールバック 
+  1000 // 1000ミリ秒 = 1秒 
+) 
+console.log('setTimeout()を実行しました') 
+
+// ctrl-D 
+setTimeout()を実行しました
+undefined
+> 1秒経過しました
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+const array1 = [0, 1, 2, 3] 
+const array2 = array1.map((element) => { 
+  console.log(`${element}を変換します`) 
+  return element * 10 // それぞれの要素を10倍する 
+}) 
+console.log('配列の変換が完了しました', array2) 
+
+// ctrl-D 
+0を変換します
+1を変換します
+2を変換します
+3を変換します
+配列の変換が完了しました [ 0, 10, 20, 30 ]
+undefined
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+fs.readdir( 
+  '.', // REPLの実行ディレクトリ 
+  (err, files) => { // コールバック 
+    console.log('fs.readdir()実行結果')  
+    console.log('err', err) 
+    console.log('files', files) 
+  } 
+) 
+
+// ctrl-D 
+undefined # fs.readdir() の戻り値は undefined
+> fs.readdir()実行結果
+err null
+files [ # ... （Node.jsの実行ディレクトリに存在するファイル名の配列）
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+fs.readdir( 
+  'foo', // 存在しないディレクトリ 
+  (err, files) => { // コールバック 
+    console.log('fs.readdir()実行結果') 
+    console.log('err', err) 
+    console.log('files', files) 
+  } 
+) 
+
+// ctrl-D 
+undefined
+> fs.readdir()実行結果
+err [Error: ENOENT: no such file or directory, scandir 'foo'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'scandir',
+  path: 'foo'
+}
+files undefined # filesはundefined
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+function parseJSONSync(json) { 
+  try { 
+    return JSON.parse(json) 
+  } catch (err) { 
+    console.error('エラーをキャッチ', err) 
+  } 
+} 
+parseJSONSync('不正なJSON') 
+
+// ctrl-D 
+エラーをキャッチ SyntaxError: Unexpected token 不 in JSON at position 0
+    at JSON.parse (<anonymous>)
+    # ... （省略）
+undefined
+
+
+/** REPL **/
+> JSON.parse('{"message": "Hello", "to": "World"}') 
+{ message: 'Hello', to: 'World' }
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+function parseJSONAsync(json, callback) { 
+  try { 
+    setTimeout(() => { 
+      callback(JSON.parse(json)) 
+    }, 1000) 
+  } catch (err) { 
+    console.error('エラーをキャッチ', err) 
+    callback({}) 
+  } 
+} 
+parseJSONAsync('不正なJSON', result => 
+  console.log('parse結果', result) 
+) 
+
+// ctrl-D 
+undefined
+> Uncaught SyntaxError: Unexpected token 不 in JSON at position 0
+
+
+/** js **/
+process.on('uncaughtException', err => {
+  // プロセス終了前に必要な後片づけ処理やログの出力を行う
+  // process.exit(1)により、必ずプロセスをエラー終了させること
+  process.exit(1)
+})
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+function parseJSONAsync(json, callback) { 
+  setTimeout(() => { 
+    try { 
+      callback(null, JSON.parse(json)) 
+    } catch (err) { 
+      callback(err) 
+    } 
+  }, 1000) 
+} 
+parseJSONAsync('不正なJSON', (err, result) => 
+  console.log('parse結果', err, result) 
+) 
+
+// ctrl-D 
+undefined
+> parse結果 SyntaxError: Unexpected token 不 in JSON at position 0
+    at JSON.parse (<anonymous>)
+    # ... （省略）
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+const cache = {} 
+function parseJSONAsyncWithCache(json, callback) { 
+  const cached = cache[json] 
+  if (cached) { 
+    callback(cached.err, cached.result) 
+    return 
+  } 
+  parseJSONAsync(json, (err, result) => { 
+    cache[json] = { err, result } 
+    callback(err, result) 
+  }) 
+} 
+
+// 1回目の実行 
+parseJSONAsyncWithCache( 
+  '{"message": "Hello", "to": "World"}', 
+  (err, result) => { 
+    console.log('1回目の結果', err, result) 
+    // コールバックの中で2回目を実行 
+    parseJSONAsyncWithCache( 
+      '{"message": "Hello", "to": "World"}', 
+      (err, result) => { 
+        console.log('2回目の結果', err, result) 
+      } 
+    ) 
+    console.log('2回目の呼び出し完了') 
+  } 
+) 
+console.log('1回目の呼び出し完了') 
+
+// ctrl-D 
+1回目の呼び出し完了
+undefined
+> 1回目の結果 null { message: 'Hello', to: 'World' }
+2回目の結果 null { message: 'Hello', to: 'World' }
+2回目の呼び出し完了
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+const cache2 = {} 
+function parseJSONAsyncWithCache(json, callback) { 
+  const cached = cache2[json] 
+  if (cached) { 
+    // キャッシュに値が存在する場合でも、非同期的にコールバックを実行する 
+    setTimeout(() => callback(cached.err, cached.result), 0) 
+    return 
+  } 
+  parseJSONAsync(json, (err, result) => { 
+    cache2[json] = { err, result } 
+    callback(err, result) 
+  }) 
+} 
+
+// 1回目の実行 
+parseJSONAsyncWithCache( 
+  '{"message": "Hello", "to": "World"}', 
+  (err, result) => { 
+    console.log('1回目の結果', err, result) 
+    // コールバックの中で2回目を実行 
+    parseJSONAsyncWithCache( 
+      '{"message": "Hello", "to": "World"}', 
+      (err, result) => { 
+        console.log('2回目の結果', err, result) 
+      } 
+    ) 
+    console.log('2回目の呼び出し完了') 
+  } 
+) 
+console.log('1回目の呼び出し完了') 
+
+// ctrl-D 
+1回目の呼び出し完了
+undefined
+> 1回目の結果 null { message: 'Hello', to: 'World' }
+2回目の呼び出し完了
+2回目の結果 null { message: 'Hello', to: 'World' }
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+const cache3 = {} 
+function parseJSONAsyncWithCache(json, callback) { 
+  const cached = cache3[json] 
+  if (cached) { 
+    // Node.jsのみを対象としたコードの場合 
+    process.nextTick(() => callback(cached.err, cached.result)) 
+    // ブラウザ環境でも動かすコードの場合 
+    // 1. queueMicrotask()を使う 
+    // queueMicrotask(() => callback(cached.err, cached.result)) 
+    // 2. Promiseを使う 
+    // Promise.resolve().then(() => callback(cached.err, cached.result)) 
+    return 
+  } 
+  parseJSONAsync(json, (err, result) => { 
+    cache3[json] = { err, result } 
+    callback(err, result) 
+  }) 
+} 
+
+// 1回目の実行 
+parseJSONAsyncWithCache( 
+  '{"message": "Hello", "to": "World"}', 
+  (err, result) => { 
+    console.log('1回目の結果', err, result) 
+    // コールバックの中で2回目を実行 
+    parseJSONAsyncWithCache( 
+      '{"message": "Hello", "to": "World"}',  
+      (err, result) => { 
+        console.log('2回目の結果', err, result) 
+      } 
+    ) 
+    console.log('2回目の呼び出し完了') 
+  } 
+) 
+console.log('1回目の呼び出し完了') 
+
+// ctrl-D 
+1回目の呼び出し完了
+undefined
+> 1回目の結果 null { message: 'Hello', to: 'World' }
+2回目の呼び出し完了
+2回目の結果 null { message: 'Hello', to: 'World' }
+
+
+/** js **/
+asyncFunc1(input, (err, result) => {
+  if (err) {
+    // エラーハンドリング
+  }
+  asyncFunc2(result, (err, result) => {
+    if (err) {
+      // エラーハンドリング
+    }
+    asyncFunc3(result, (err, result) => {
+      if (err) {
+        // エラーハンドリング
+      }
+      asyncFunc4(result, (err, result) => {
+        if (err) {
+          // エラーハンドリング
+        }
+        // ...
+      })
+    })
+  })
+})
+
+
+/** js **/
+function first(arg, callback) {
+  asyncFunc1(arg, (err, result) => {
+    if (err) {
+      return callback(err)
+    }
+    second(result, callback)
+  })
+}
+
+function second(arg, callback) {
+  asyncFunc2(arg, (err, result) => {
+    if (err) {
+      return callback(err)
+    }
+    third(result, callback)
+  })
+}
+
+function third(arg, callback) {
+  asyncFunc3(arg, (err, result) => {
+    if (err) {
+      return callback(err)
+    }
+    asyncFunc4(result, callback)
+  })
+}
+
+// すべての非同期処理を実行する
+first(input, (err, result) => {
+  if (err) {
+    // エラーハンドリング
+  }
+  // ...
+})
+
+
+/** js **/
+try {
+  const result1 = syncFunc1(input)
+  const result2 = syncFunc2(result1)
+  const result3 = syncFunc3(result2)
+  const result4 = syncFunc4(result3)
+  // ...
+} catch (err) {
+  // エラーハンドリング
+}
+
+
+/** js **/
+asyncFunc1(input)
+  .then(asyncFunc2)
+  .then(asyncFunc3)
+  .then(asyncFunc4)
+  .then(result => {
+    // ...
+  })
+  .catch(err => {
+    // エラーハンドリング
+  })
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+function parseJSONAsync(json) { 
+  // Promiseインスタンスを生成して返す（この時点ではpending状態） 
+  return new Promise((resolve, reject) => 
+    setTimeout(() => { 
+      try { 
+        // fulfilled状態にする（解決） 
+        resolve(JSON.parse(json)) 
+      } catch (err) { 
+        // rejected状態にする（拒否） 
+        reject(err) 
+      } 
+    }, 1000) 
+  ) 
+} 
+
+// ctrl-D 
+undefined
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+const toBeFulfilled = parseJSONAsync('{"foo": 1}') 
+const toBeRejected = parseJSONAsync('不正なJSON') 
+console.log('*************** Promise生成直後 ***************') 
+console.log(toBeFulfilled) 
+console.log(toBeRejected) 
+setTimeout(() => { 
+  console.log('******************** 1秒後 ********************') 
+  console.log(toBeFulfilled) 
+  console.log(toBeRejected) 
+}, 1000) 
+
+// ctrl-D 
+*************** Promise生成直後 ***************
+Promise { <pending> }
+Promise { <pending> }
+Timeout {
+  # ... （省略）
+> (node:70798) UnhandledPromiseRejectionWarning: SyntaxError: Unexpected 
+token 不 in JSON at position 0
+# ... （省略）
+(node:70798) UnhandledPromiseRejectionWarning: Unhandled promise rejection. 
+This error originated either by throwing inside of an async function without 
+a catch block, or by rejecting a promise which was not handled with .catch(). 
+To terminate the node process on unhandled promise rejection, use the CLI 
+flag `--unhandled-rejections=strict` # ... （省略）
+******************** 1秒後 ********************
+Promise { { foo: 1 } }
+Promise {
+  <rejected> SyntaxError: Unexpected token 不 in JSON at position 0
+  # ... （省略）
+
+
+/** js **/
+new Promise(() => {
+  throw new Error('エラー')
+})
+
+
+/** js **/
+process.on(
+  'unhandledRejection',
+  (
+    err, // Promiseの拒否理由
+    promise // 放置されたrejectedなPromise
+  ) => {
+    // unhandledRejection発生の原因を調べられるよう、ログ出力などの対応を行う
+    console.error('unhandledRejection発生', err)
+  }
+)
+
+
+/** REPL **/
+# コンストラクタを使ってfulfilledなPromiseインスタンスを生成
+> new Promise(resolve => resolve({ foo: 1 })) 
+Promise { { foo: 1 } }
+# Promise.resolve()を使ってfulfilledなPromiseインスタンスを生成
+> Promise.resolve({ foo: 1 }) 
+Promise { { foo: 1 } }
+# コンストラクタを使ってrejectedなPromiseインスタンスを生成
+> new Promise((resolve, reject) => reject(new Error('エラー'))) 
+Promise {
+  <rejected> Error: エラー
+  # ... （省略）
+# Promise.reject()を使ってrejectedなPromiseインスタンスを生成
+> Promise.reject(new Error('エラー')) 
+Promise {
+  <rejected> Error: エラー
+  # ... （省略）
+
+
+/** REPL **/
+> const fooPromise = Promise.resolve('foo') 
+undefined
+> fooPromise === Promise.resolve(fooPromise) 
+true
+
+
+/** js **/
+promise.then(
+  // onFulfilled
+  value => {
+    // 成功時の処理
+  },
+  // onRejected
+  err => {
+    // 失敗時の処理
+  }
+)
+
+
+/** REPL **/
+# stringで解決されるPromiseインスタンスの生成
+> const stringPromise = Promise.resolve('{"foo": 1}') 
+undefined
+> stringPromise 
+Promise { '{"foo": 1}' }
+# numberで解決される新しいPromiseインスタンスの生成（onRejected()を省略）
+> const numberPromise = stringPromise.then(str => str.length) 
+undefined
+> numberPromise 
+Promise { 10 }
+# then()を実行しても元のPromiseインスタンスの状態は変わらない
+> stringPromise 
+Promise { '{"foo": 1}' }
+
+
+/** REPL **/
+> const unrecoveredPromise = 
+...   Promise.reject(new Error('エラー')).then(() => 1) 
+undefined
+> (node:71518) UnhandledPromiseRejectionWarning: Error: エラー
+# ... （省略）
+
+> unrecoveredPromise 
+Promise {
+  <rejected> Error: エラー
+  # ... （省略）
+
+
+/** REPL **/
+> const recoveredPromise = 
+...   Promise.reject(new Error('エラー')).then(() => 1, err => err.message) 
+undefined
+> recoveredPromise 
+Promise { 'エラー' }
+
+
+/** REPL **/
+> const rejectedPromise = 
+...   stringPromise.then(() => { throw new Error('エラー') }) 
+undefined
+> (node:71518) UnhandledPromiseRejectionWarning: Error: エラー
+# ... （省略）
+
+> rejectedPromise 
+Promise { <rejected> Error: エラー
+  # ... （省略）
+
+
+/** REPL **/
+# then()がfulfilledなPromiseインスタンスを返すパターン
+> const objPromise = stringPromise.then(parseJSONAsync) 
+undefined
+> objPromise 
+Promise { { foo: 1 } }
+# then()がrejectedなPromiseインスタンスを返すパターン
+> const rejectedObjPromise = 
+...   Promise.resolve('不正なJSON').then(parseJSONAsync) 
+undefined
+> (node:71518) UnhandledPromiseRejectionWarning: SyntaxError: Unexpected 
+token 不 in JSON at position 0
+# ... （省略）
+
+> rejectedObjPromise 
+Promise {
+  <rejected> SyntaxError: Unexpected token 不 in JSON at position 0
+  # ... （省略）
+
+
+/** js **/
+// 本節冒頭の擬似コードの再掲
+asyncFunc1(input)
+  // asyncFunc1完了後、その結果を引数にasyncFunc2を実行
+  .then(asyncFunc2)
+  // asyncFunc2完了後、その結果を引数にasyncFunc3を実行
+  .then(asyncFunc3)
+  // asyncFunc3完了後、その結果を引数にasyncFunc4を実行
+  .then(asyncFunc4)
+  .then(result => {
+    // すべての非同期処理が完了したあとの処理
+  })
+  .catch(err => {
+    // エラーハンドリング
+  })
+
+
+/** REPL **/
+# then()でonFulfilled()を省略
+> const withoutOnFulfilled = 
+...   Promise.reject(new Error('エラー')).then(undefined, () => 0) 
+undefined
+> withoutOnFulfilled 
+Promise { 0 }
+# catch()の利用で同じ処理になる
+> const catchedPromise = Promise.reject(new Error('エラー')).catch(() => 0) 
+undefined
+> catchedPromise 
+Promise { 0 }
+
+
+/** js **/
+// then()を2引数で実行するパターン
+asyncFunc1(input)
+  .then(
+    asyncFunc2, // onFulfilled
+    err => { // onRejected
+      // asyncFunc1用のエラーハンドリング
+    }
+  )
+  .then(
+    result => { // onFulfilled
+      // この中で発生したエラーは第二引数（onRejected）でハンドリングされない
+    },
+    err => { // onRejected
+      // asyncFunc2用のエラーハンドリング
+    }
+  )
+
+// onRejectedを省略しthen()の後ろにcatch()を付けるパターン
+asyncFunc1(input)
+  .then(asyncFunc2 /* onFulfilled */)
+  .then(result => { // onFulfilled
+    // この中で発生したエラーもcatch()に渡したonRejectedでハンドリングされる
+  })
+  .catch(err => { // onRejected
+    // ここにエラーハンドリングを集約できる
+  })
+
+
+/** js **/
+try {
+  const result1 = syncFunc1(input)
+  const result2 = syncFunc2(result1)
+  // ...
+} catch (err) {
+  // エラーハンドリング
+}
+
+
+/** js **/
+function doSomethingAsync(input) {
+  return asyncFunc1(input)
+    .catch(err => {
+      // エラー発生時に必要な処理を行う
+      // ここでは、デバッグ用にログを出力する
+      console.error('asyncFunc1でエラー発生', err)
+      throw err // または return Promise.reject(err)
+    })
+}
+
+
+/** REPL **/
+> const onFinally = () => console.log('finallyのコールバック') 
+undefined
+# fulfilledなPromiseインスタンスに対して呼び出される場合
+> Promise.resolve().finally(onFinally) 
+Promise { <pending> }
+> finallyのコールバック # onFinallyが実行される
+
+# rejectedなPromiseインスタンスに対して呼び出される場合
+> Promise.reject(new Error('エラー')).finally(onFinally) 
+Promise { <pending> }
+> finallyのコールバック # onFinallyが実行される
+(node:71518) UnhandledPromiseRejectionWarning: Error: エラー
+  # ... （省略）
+
+
+/** REPL **/
+> const returnValueInFinally = Promise.resolve(1).finally(() => 2) 
+undefined
+> returnValueInFinally 
+# finally()のコールバックで2を返しても、Promiseインスタンスは1で解決される
+Promise { 1 }
+
+
+/** REPL **/
+> const throwErrorInFinally = 
+...   Promise.resolve(1).finally(() => { throw new Error('エラー') }) 
+undefined
+> (node:71518) UnhandledPromiseRejectionWarning: Error: エラー
+# ... （省略）
+
+> throwErrorInFinally 
+Promise {
+  <rejected> Error: エラー
+  # ... （省略）
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+Promise 
+  .resolve('foo') 
+  .finally(() => 
+    new Promise(resolve => 
+      setTimeout( 
+        () => { 
+          console.log('finally()で1秒経過') 
+          resolve() 
+        }, 
+        1000 
+      ) 
+    ) 
+  ) 
+  .then(console.log) 
+
+// ctrl-D 
+Promise { <pending> }
+> finally()で1秒経過
+foo # コールバックが返すPromiseインスタンスが解決されるのを待って出力される
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+Promise.resolve('foo').then(result => console.log('コールバック', result)) 
+console.log('この行が先に実行される') 
+
+// ctrl-D 
+この行が先に実行される
+undefined
+> コールバック foo
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+const allResolved = Promise.all([ 
+  1, // Promise以外のものも含められる 
+  Promise.resolve('foo'), 
+  Promise.resolve(true) 
+]) 
+
+// ctrl-D 
+undefined
+> allResolved 
+Promise { [ 1, 'foo', true ] }
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+const containsRejected = Promise.all([ 
+  1, 
+  Promise.resolve('foo'), 
+  Promise.reject(new Error('エラー')), 
+  Promise.resolve(true) 
+]) 
+
+// ctrl-D 
+undefined
+> (node:6111) UnhandledPromiseRejectionWarning: Error: エラー
+# ... （省略）
+
+> containsRejected 
+Promise {
+  <rejected> Error: エラー
+  # ... （省略）
+
+
+/** REPL **/
+> Promise.all([]) 
+Promise { [] }
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+// 1秒かかる非同期処理 
+function asyncFunc() { 
+  return new Promise(resolve => setTimeout(resolve, 1000)) 
+} 
+
+// perf_hooks.performance.now()で現在時刻を取得 
+const start = perf_hooks.performance.now() 
+
+// 逐次実行 
+asyncFunc() 
+  .then(asyncFunc) 
+  .then(asyncFunc) 
+  .then(asyncFunc) 
+  .then(() => 
+    console.log('逐次実行所要時間', perf_hooks.performance.now() - start) 
+  ) 
+
+// Promise.all()で並行実行 
+Promise 
+  .all([ 
+    asyncFunc(), 
+    asyncFunc(), 
+    asyncFunc(), 
+    asyncFunc() 
+  ]) 
+  .then(() => 
+    console.log('並行実行所要時間', perf_hooks.performance.now() - start) 
+  ) 
+
+// ctrl-D 
+Promise { <pending> }
+> 並行実行所要時間 1003.6057110000402
+逐次実行所要時間 4015.543664999306
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+// 引数で与えられた時間だけ待機する非同期処理 
+function wait(time) { 
+  return new Promise(resolve => setTimeout(resolve, time)) 
+} 
+
+// 最初にfulfilledになるケース 
+const fulfilledFirst = Promise.race([ 
+  wait(10).then(() => 1), // この結果が採用される 
+  wait(30).then(() => 'foo'), 
+  wait(20).then(() => Promise.reject(new Error('エラー'))) 
+]) 
+
+// 最初にrejectedになるケース 
+const rejectFirst = Promise.race([ 
+  wait(20).then(() => 1), 
+  wait(30).then(() => 'foo'), 
+  // この結果が採用される 
+  wait(10).then(() => Promise.reject(new Error('エラー'))) 
+]) 
+
+// Promiseインスタンス以外の値が含まれるケース 
+const containsNonPromise = Promise.race([ 
+  wait(10).then(() => 1), 
+  'foo', // この結果が採用される 
+  wait(20).then(() => Promise.reject(new Error('エラー'))) 
+]) 
+
+// ctrl-D 
+undefined
+> (node:9801) UnhandledPromiseRejectionWarning: Error: エラー
+# ... （省略）
+
+# 結果の確認
+> fulfilledFirst 
+Promise { 1 }
+> rejectFirst 
+Promise {
+  <rejected> Error: エラー
+  # ... （省略）
+> containsNonPromise 
+Promise { 'foo' }
+
+
+/** REPL **/
+> const raceWithEmptyArray = Promise.race([]) 
+undefined
+> raceWithEmptyArray 
+Promise { <pending> }
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+function withTimeout(promise, timeout) { 
+  return Promise.race([ 
+    promise, 
+    new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('タイムアウト')), timeout) 
+    ) 
+  ]) 
+} 
+
+// 20ミリ秒で完了する非同期処理 
+const promise = new Promise(resolve => setTimeout(() => resolve(1), 20)) 
+// タイムアウト30ミリ秒で実行 
+const shouldBeResolved = withTimeout(promise, 30) 
+// タイムアウト10ミリ秒で実行 
+const shouldBeRejected = withTimeout(promise, 10) 
+
+// ctrl-D 
+undefined
+> (node:13374) UnhandledPromiseRejectionWarning: Error: タイムアウト
+# ... （省略）
+
+# 結果の確認
+> shouldBeResolved 
+Promise { 1 }
+> shouldBeRejected 
+Promise {
+  <rejected> Error: タイムアウト
+  # ... （省略）
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+const allSettled = Promise.allSettled([ 
+  1, 
+  Promise.resolve('foo'), 
+  Promise.reject(new Error('エラー')), 
+  Promise.resolve(true) 
+]) 
+
+// ctrl-D 
+undefined
+> allSettled 
+Promise {
+  [
+    { status: 'fulfilled', value: 1 },
+    { status: 'fulfilled', value: 'foo' },
+    {
+      status: 'rejected',
+      reason: Error: エラー
+          # ... （省略）
+    },
+    { status: 'fulfilled', value: true }
+  ]
+}
+
+
+/** REPL **/
+> Promise.allSettled([]) 
+Promise { [] }
+
+
+/** REPL **/
+# ※注意: 本書執筆時点ではPromise.anyが使えないためこのコードはエラーになります
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+const anyFulfilled = Promise.any([ 
+  Promise.resolve('foo'), 
+  Promise.reject(new Error('エラー')), 
+  Promise.resolve(true) 
+]) 
+
+// ctrl-D 
+undefined
+> anyFulfilled 
+Promise { 'foo' }
+
+
+/** REPL **/
+# ※注意: 本書執筆時点ではPromise.anyが使えないためこのコードはエラーになります
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+const noneFulfilled = Promise.any([ 
+  Promise.reject(new Error('エラー1')), 
+  Promise.reject(new Error('エラー2')) 
+]) 
+
+// ctrl-D 
+undefined
+> (node:6111) UnhandledPromiseRejectionWarning: AggregateError: All promises 
+were rejected
+# ... （省略）
+
+> noneFulfilled 
+Promise { <rejected> AggregateError {} }
+> noneFulfilled.catch(err => console.log(err.errors)) 
+Promise { <pending> }
+> [
+  Error: エラー1
+      # ... （省略）
+  Error: エラー2
+      # ... （省略）
+]
+PromiseRejectionHandledWarning: Promise rejection was handled asynchronously 
+(rejection id: 4)
+
+
+/** REPL **/
+# ※注意: 本書執筆時点ではPromise.anyが使えないためこのコードはエラーになります
+> Promise.any([]) 
+Promise { <rejected> AggregateError {} }
+> Promise.any([]).catch(err => console.log(err.errors)) 
+Promise { <pending> }
+> []
+
+
+/** REPL **/
+> const readdir = util.promisify(fs.readdir) 
+undefined
+> readdir('.').then(console.log) 
+Promise { <pending> }
+> [ # ... （Node.jsの実行ディレクトリに存在するファイル名の配列）
+
+
+/** REPL **/
+> setTimeout[util.promisify.custom] 
+[Function (anonymous)]
+> const setTimeoutPromise = util.promisify(setTimeout) 
+undefined
+> setTimeoutPromise(1000).then(() => console.log('1秒経過')) 
+Promise { <pending> }
+> 1秒経過
+
+
+/** REPL **/
+> fs.promises.readdir('.').then(console.log) 
+Promise { <pending> }
+> [ # ... （Node.jsの実行ディレクトリに存在するファイル名の配列）
+
+
+/** js **/
+/**
+ * ジェネレータ関数
+ */
+function* generatorFunc() {
+  yield 1
+  yield 2
+  yield 3
+}
+// ジェネレータの生成
+const generator = generatorFunc()
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+function* generatorFunc() { 
+  console.log('ジェネレータ関数開始') 
+  console.log('yield 1') 
+  yield 1 
+  console.log('yield 2') 
+  yield 2 
+  console.log('yield 3') 
+  yield 3 
+  console.log('ジェネレータ関数終了') 
+  return 'ジェネレータ関数戻り値' 
+} 
+
+// ctrl-D 
+undefined
+> const generator = generatorFunc() 
+undefined # この時点ではジェネレータ関数の中の処理は実行されない
+> generator.next() 
+ジェネレータ関数開始
+yield 1
+{ value: 1, done: false } # next()の実行により、yield 1まで進む
+> generator.next() 
+yield 2
+{ value: 2, done: false } # next()の実行により、yield 2まで進む
+> generator.next() 
+yield 3
+{ value: 3, done: false } # next()の実行により、yield 3まで進む
+> generator.next() 
+ジェネレータ関数終了
+{ value: 'ジェネレータ関数戻り値', done: true } # next()の実行により、最後まで進む
+> generator.next() 
+{ value: undefined, done: true } # 以降同じ結果を返す
+> generator.next() 
+{ value: undefined, done: true }
+
+
+/** REPL **/
+> const generator2 = generatorFunc() 
+undefined
+> const iterator = generator2[Symbol.iterator]() 
+undefined
+> iterator.next() 
+ジェネレータ関数開始
+yield 1
+{ value: 1, done: false }
+> iterator.next() 
+yield 2
+{ value: 2, done: false }
+> iterator.next() 
+yield 3
+{ value: 3, done: false }
+> iterator.next() 
+ジェネレータ関数終了
+{ value: 'ジェネレータ関数戻り値', done: true }
+
+
+/** REPL **/
+> iterator === generator2 
+true
+
+
+/** REPL **/
+> const generator3 = generatorFunc() 
+undefined
+> for (const v of generator3) { console.log('for...of', v) } 
+ジェネレータ関数開始
+yield 1
+for...of 1
+yield 2
+for...of 2
+yield 3
+for...of 3
+ジェネレータ関数終了
+undefined
+
+
+/** REPL **/
+> const arrayIterator = [1, 2, 3][Symbol.iterator]() 
+undefined
+> arrayIterator.next() 
+{ value: 1, done: false }
+> arrayIterator.next() 
+{ value: 2, done: false }
+> arrayIterator.next() 
+{ value: 3, done: false }
+> arrayIterator.next() 
+{ value: undefined, done: true }
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+// リセット可能なカウンタを実装するジェネレータ関数 
+function* resetableGeneratorFunc() { 
+  let count = 0 
+  while (true) { 
+    // next()を真に評価される引数（trueなど）で実行すると、 
+    // ここでカウンタがリセットされる 
+    if (yield count++) { 
+      count = 0 
+    } 
+  } 
+} 
+
+// ctrl-D 
+undefined
+> const resetableGenerator = resetableGeneratorFunc() 
+undefined
+> resetableGenerator.next() 
+{ value: 0, done: false }
+> resetableGenerator.next() 
+{ value: 1, done: false }
+> resetableGenerator.next() 
+{ value: 2, done: false }
+> resetableGenerator.next() 
+{ value: 3, done: false }
+> resetableGenerator.next(true) 
+{ value: 0, done: false } # カウンタがリセットされる
+> resetableGenerator.next() 
+{ value: 1, done: false }
+> resetableGenerator.next() 
+{ value: 2, done: false }
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+function* tryCatchGeneratorFunc() { 
+  try { 
+    yield 1 
+  } catch (err) { 
+    console.log('エラーをキャッチ', err) 
+    yield 2 
+  } 
+} 
+
+// ctrl-D 
+undefined
+> const tryCatchGenerator = tryCatchGeneratorFunc() 
+undefined
+> tryCatchGenerator.next() 
+{ value: 1, done: false }
+# "yield 1"の行でエラーを発生させる
+> tryCatchGenerator.throw(new Error('エラー')) 
+エラーをキャッチ Error: エラー
+# ... （省略）
+{ value: 2, done: false }
+> tryCatchGenerator.next() 
+{ value: undefined, done: true }
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+try { 
+  // try...catchのないresetableGeneratorに対してthrow()を実行 
+  resetableGenerator.throw(new Error('エラー')) 
+} catch (err) { 
+  console.log('ジェネレータ外でエラーをキャッチ', err) 
+} 
+
+// ctrl-D 
+ジェネレータ外でエラーをキャッチ Error: エラー
+# ... （省略）
+> resetableGenerator.next() 
+{ value: undefined, done: true } # ジェネレータが終了する
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+// 非同期的にJSONをパースする関数（再掲） 
+function parseJSONAsync(json) { 
+  return new Promise((resolve, reject) => 
+    setTimeout(() => { 
+      try { 
+        resolve(JSON.parse(json)) 
+      } catch (err) { 
+        reject(err) 
+      } 
+    }, 1000) 
+  ) 
+} 
+
+// yieldの仕組みを利用して非同期処理を実行する関数 
+function* asyncWithGeneratorFunc(json) { 
+  try { 
+    // 非同期処理の実行 
+    const result = yield parseJSONAsync(json) 
+    console.log('パース結果', result) 
+  } catch (err) { 
+    console.log('エラーをキャッチ', err) 
+  } 
+} 
+
+// ctrl-D 
+undefined
+
+
+/** REPL **/
+# 正常系
+> const asyncWithGenerator1 = asyncWithGeneratorFunc('{ "foo": 1 }') 
+undefined
+# "yield parseJSONAsync(json)"で生成されるPromiseインスタンスの取得
+> const promise1 = asyncWithGenerator1.next().value 
+undefined
+# Promiseインスタンスが解決された値をnext()メソッドに渡す
+> promise1.then(result => asyncWithGenerator1.next(result)) 
+Promise { <pending> }
+# ジェネレータ関数内でのconsole.log()による出力を確認
+> パース結果 { foo: 1 } # resultはPromiseインスタンスではなく、パース結果そのもの
+
+# 異常系
+> const asyncWithGenerator2 = asyncWithGeneratorFunc('不正なJSON') 
+undefined
+# "yield parseJSONAsync(json)"で生成されるPromiseインスタンスの取得
+> const promise2 = asyncWithGenerator2.next().value 
+undefined
+# Promiseインスタンスが拒否された値をthrow()メソッドに渡す
+> promise2.catch(err => asyncWithGenerator2.throw(err)) 
+Promise { <pending> }
+# ジェネレータ関数内でのconsole.log()による出力を確認
+> エラーをキャッチ SyntaxError: Unexpected token 不 in JSON at position 0
+# ... （省略）
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+// 非同期処理を実行するジェネレータの汎用的なハンドリング関数 
+// 戻り値はPromiseインスタンス 
+function handleAsyncWithGenerator(generator, resolved) { 
+  // 前回yieldされたPromiseインスタンスの値を引数にnext()を実行 
+  // 初回はresolvedには値が入っていない（undefined） 
+  const { done, value } = generator.next(resolved) 
+  if (done) { 
+    // ジェネレータが完了した場合はvalueで解決されるPromiseインスタンスを返す 
+    return Promise.resolve(value) 
+  } 
+  return value.then( 
+    // 正常系では再起呼び出し 
+    resolved => handleAsyncWithGenerator(generator, resolved), 
+    // 異常系ではthrow()メソッドを実行 
+    err => generator.throw(err) 
+  ) 
+} 
+
+// ctrl-D 
+undefined
+> handleAsyncWithGenerator(asyncWithGeneratorFunc('{ "foo": 1 }')) 
+Promise { <pending> }
+# ジェネレータ関数内でのconsole.log()による出力を確認
+> パース結果 { foo: 1 }
+
+> handleAsyncWithGenerator(asyncWithGeneratorFunc('不正なJSON')) 
+Promise { <pending> }
+# ジェネレータ関数内でのconsole.log()による出力を確認
+> エラーをキャッチ SyntaxError: Unexpected token 不 in JSON at position 0
+# ... （省略）
+
+
+/** js **/
+function* asyncFunc(input) {
+  try {
+    const result1 = yield asyncFunc1(input)
+    const result2 = yield asyncFunc2(result1)
+    const result3 = yield asyncFunc3(result2)
+    const result4 = yield asyncFunc4(result3)
+    // ...
+  } catch (err) {
+    // エラーハンドリング
+  }
+}
+
+handleAsyncWithGenerator(asyncFunc(input))
+
+
+/** js **/
+// Arrayを生成する段階で、要素として含まれるすべての値が必要
+const arr = [0, 1, 2, 3]
+
+
+/** js **/
+async function asyncFunc(input) {
+  try {
+    const result1 = await asyncFunc1(input)
+    const result2 = await asyncFunc2(result1)
+    const result3 = await asyncFunc3(result2)
+    const result4 = await asyncFunc4(result3)
+    // ...
+  } catch (e) {
+    // エラーハンドリング
+  }
+}
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+// 非同期的にJSONをパースする関数（再掲） 
+function parseJSONAsync(json) { 
+  return new Promise((resolve, reject) => 
+    setTimeout(() => { 
+      try { 
+        resolve(JSON.parse(json)) 
+      } catch (err) { 
+        reject(err) 
+      } 
+    }, 1000) 
+  ) 
+} 
+
+// asyc/await構文を利用した非同期処理 
+async function asyncFunc(json) { 
+  try { 
+    const result = await parseJSONAsync(json) 
+    console.log('パース結果', result) 
+  } catch (err) { 
+    console.log('エラーをキャッチ', err) 
+  } 
+} 
+
+// ctrl-D 
+undefined
+# 正常系
+> asyncFunc('{ "foo": 1 }') 
+Promise { <pending> }
+> パース結果 { foo: 1 }
+
+# 異常系
+> asyncFunc('不正なJSON') 
+Promise { <pending> }
+> エラーをキャッチ SyntaxError: Unexpected token 不 in JSON at position 0
+# ... （省略）
+
+
+/** REPL **/
+> async function asyncReturnFoo() {  return 'foo' } 
+undefined
+> asyncReturnFoo() 
+Promise { 'foo' }
+
+
+/** REPL **/
+> async function asyncThrow() { throw new Error('エラー') } 
+undefined
+> asyncThrow() 
+Promise {
+  <rejected> Error: エラー
+  # ... （省略）
+> (node:10334) UnhandledPromiseRejectionWarning: Error: エラー
+# ... （省略）
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+async function pauseAndResume(pausePeriod) { 
+  console.log('pauseAndResume開始') 
+  await new Promise(resolve => setTimeout(resolve, pausePeriod)) 
+  console.log('pauseAndResume再開') 
+} 
+
+pauseAndResume(1000) 
+console.log('async関数外の処理はawaitの影響を受けない') 
+
+// ctrl-D 
+pauseAndResume開始
+async関数外の処理はawaitの影響を受けない
+undefined
+> pauseAndResume再開
+
+
+/** js **/
+function doSomethingAsync() {
+  /* NG
+  asyncFunc1(input)
+    .then(result1 => asyncFunc2(result1))
+    // チェーンする書き方ではここでresult1を参照できない
+    .then(result2 => asyncFunc3(result1, result2))
+  */
+
+  // OK
+  asyncFunc1(input)
+    .then(result1 => asyncFunc2(result1)
+      // result1を参照するためにPromiseインスタンスをネストする必要がある
+      .then(result2 => asyncFunc3(result1, result2))
+    )
+}
+
+
+/** js **/
+async function doSomethingAsync(input) {
+  const result1 = await asyncFunc1(input)
+  const result2 = await asyncFunc2(result1)
+  const result3 = await asyncFunc3(result1, result2)
+}
+
+
+/** js **/
+async function doSomethingAsyncConcurrently() {
+  // 複数の非同期処理の並行実行
+  const result = await Promise.all([
+    asyncFunc1(),
+    asyncFunc2(),
+    asyncFunc3()
+  ])
+}
+
+
+/** js **/
+(async () => {
+  // 非同期に値を取得
+  const a = await getSomethingAsync()
+})()
+
+
+/** child-a.mjs **/
+console.log('child-a 1')
+await new Promise(resolve => setTimeout(resolve, 1000))
+console.log('child-a 2')
+
+
+/** child-b.mjs **/
+console.log('child-b')
+
+
+/** parent.mjs **/
+import './child-a.mjs'
+import './child-b.mjs'
+console.log('parent')
+
+
+/** SHELL **/
+$ node parent.mjs 
+child-a 1
+child-b
+# 1秒待機
+child-a 2
+parent
+
+
+/** SHELL **/
+$ node --experimental-repl-await 
+> await Promise.resolve('foo') 
+'foo'
+
+
+/** js **/
+// asyncIterableからは要素が非同期的に取り出される
+for await (const element of asyncIterable) {
+  // ...
+}
+
+
+/** REPL **/
+# --experimental-repl-awaitフラグを指定してREPLを開く
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+const asyncIterable = { 
+  [Symbol.asyncIterator]() { 
+    let i = 0 
+    // asyncイテレータ 
+    return { 
+      // value、doneプロパティを持つオブジェクトで解決されるPromiseを返す 
+      next() { 
+        if (i > 3) { 
+          return Promise.resolve({ done: true }) 
+        } 
+        return new Promise(resolve => setTimeout( 
+          () => resolve({ value: i++, done: false }), 
+          100 
+        )) 
+      } 
+    } 
+  } 
+} 
+
+for await (const element of asyncIterable) { 
+  console.log(element) 
+} 
+
+// ctrl-D 
+0
+1
+2
+3
+undefined
+
+
+/** REPL **/
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+// asyncジェネレータ関数 
+async function* asyncGenerator() { 
+  let i = 0 
+  while (i <= 3) { 
+    await new Promise(resolve => setTimeout(resolve, 100)) 
+    yield i++ 
+  } 
+} 
+
+for await (const element of asyncGenerator()) { 
+  console.log(element) 
+} 
+
+// ctrl-D 
+0
+1
+2
+3
+undefined

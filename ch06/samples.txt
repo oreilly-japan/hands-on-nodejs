@@ -1,0 +1,581 @@
+// 6章に登場するサンプルコード
+
+/** SSEのメッセージの例 **/
+: id、data、event、retryを含むメッセージ
+id: 1
+data: Hello
+event: greeting
+retry: 1000
+: この後ろで2回改行してメッセージを完結
+
+: dataだけのメッセージ
+data: data only
+
+: コメントだけのメッセージ
+
+
+
+/** --- **/
+data: Hello,
+data: World
+
+
+/** --- **/
+data: Hello,\nWorld
+
+
+/** SHELL **/
+$ npm init -y 
+# ... （省略）
+$ npm install express next react react-dom 
+
+
+/** todo-sse/package.json **/
+{
+  // ...
+  "scripts": {
+    "start": "node app",
+    // ...
+  },
+  // ...
+}
+
+
+/** todo-sse/app.js **/
+// ...
+
+// ToDo一覧の取得
+app.get('/api/todos', (req, res) => {
+  // ...
+})
+
+// 全クライアントに対するSSE送信関数を保持する配列
+let sseSenders = []
+// SSEのIDを管理するための変数
+let sseId = 1
+
+// ToDo一覧の取得（SSE）
+app.get('/api/todos/events', (req, res) => {
+  // タイムアウトを抑止
+  req.socket.setTimeout(0)
+  res.set({
+    // Content-TypeでSSEであることを示す
+    'Content-Type': 'text/event-stream'
+  })
+  // クライアントにSSEを送信する関数を作成して登録
+  const send = (id, data) => res.write(`id: ${id}\ndata: ${data}\n\n`)
+  sseSenders.push(send)
+  // リクエスト発生時点の状態を送信
+  send(sseId, JSON.stringify(todos))
+  // リクエストがクローズされたらレスポンスを終了してSSE送信関数を配列から削除
+  req.on('close', () => {
+    res.end()
+    sseSenders = sseSenders.filter(_send => _send !== send)
+  })
+})
+
+// ...
+
+
+/** --- **/
+id: 1
+data: [{ "id": 1, "title": "ネーム", "completed": false }]
+
+
+/** todo-sse/app.js **/
+// ...
+
+// ToDo一覧の取得（SSE）
+app.get('/api/todos/events', (req, res) => {
+  // ...
+})
+
+/** ToDoの更新に伴い、全クライアントに対してSSEを送信する */
+function onUpdateTodos() {
+  sseId += 1
+  const data = JSON.stringify(todos)
+  sseSenders.forEach(send => send(sseId, data))
+}
+
+// ...
+
+// ToDoの新規登録
+app.post('/api/todos', (req, res, next) => {
+  // ...
+  onUpdateTodos()
+})
+
+// ...
+
+
+/** todo-sse/components/Todos.js **/
+// ...
+
+// 各ページに関する情報の定義
+const pages = {
+  index: { title: 'すべてのToDo' },
+  active: { title: '未完了のToDo', completed: false },
+  completed: { title: '完了したToDo', completed: true }
+}
+
+// Reactコンポーネントの実装
+export default function Todos(props) {
+  const { title, completed } = pages[props.page]
+
+  // コンポーネントの状態の初期化と、propsの値に応じた更新
+  const [todos, setTodos] = useState([])
+  useEffect(() => {
+    // fetch によるToDo取得の実装を削除
+    // fetch(`/api/todos${fetchQuery}`)
+    //   .then(async res => {
+    //     const json = await res.json()
+    //     res.ok ? setTodos(json) : alert(json)
+    //   })
+
+    // EventSourceを使った実装に置き換え
+    const eventSource = new EventSource('/api/todos/events')
+    // SSE受信時の処理
+    eventSource.addEventListener('message', e => {
+      const todos = JSON.parse(e.data)
+      setTodos(
+        typeof completed === 'undefined'
+          ? todos
+          : todos.filter(todo => todo.completed === completed)
+      )
+    })
+    // エラーハンドリング
+    eventSource.addEventListener('error', e => console.log('SSEエラー', e))
+    // useEffectで関数を返すと副作用のクリーンアップとして実行される
+    // ここでは、EventSourceインスタンスをクローズする
+    return () => eventSource.close()
+  }, [props.page])
+
+  // ...
+}
+
+
+/** js **/
+import 'eventsource/lib/eventsource-polyfill'
+
+
+/** REPL **/
+# isomorphic-fetchをnpm installしたディレクトリで
+# --experimental-repl-awaitフラグを指定してREPLを開く
+> require('isomorphic-fetch') 
+[Function]
+> .editor 
+// Entering editor mode (^D to finish, ^C to cancel)
+await fetch('http://localhost:3000/api/todos', { 
+  method: 'POST', 
+  headers: { 
+    'Content-Type': 'application/json' 
+  }, 
+  body: JSON.stringify({ title: 'ペン入れ' }) 
+}) 
+
+// ctrl-D 
+Body {
+  # ... （省略）
+> console.log(_.status, await _.text()) 
+201 { id: 3, title: 'ペン入れ', completed: false }
+undefined
+
+
+/** todo-sse/app.js **/
+// ...
+
+// ToDo一覧の取得（SSE）
+app.get('/api/todos/events', (req, res) => {
+  // タイムアウトを抑止
+  // req.socket.setTimeout(0)
+  // 1秒でタイムアウトする
+  req.socket.setTimeout(1000)
+  // ...
+})
+
+// ...
+
+
+/** js **/
+'use strict'
+const http = require('http')
+const Server = require('socket.io')
+
+const server = http.createServer((req, res) => {
+  // 通常のHTTPリクエスのトハンドリング
+}).listen(3000)
+
+// Serverインスタンス生成
+const io = Server(server)
+
+// オプションを指定する場合（ここでは接続を許可するオリジンを指定）
+// const io = Server(server, { origins: allowed.origin.com })
+
+
+/** js **/
+// 新しいクライアントからの接続に伴うconnectionイベント
+io.on('connection', socket => {
+  // 任意のイベント名でクライアントにデータを送信
+  socket.emit('greeting', 'Hello')
+  // 任意のイベント名でクライアントからデータを受信
+  socket.on('registerName', name => {
+    // 接続している全クライアントに任意のイベント名でデータを送信
+    io.emit('notifyNewComer', `${name} joined`)
+    // または、このSocketインスタンスを介して接続しているクライアント以外の
+    // 全クライアントにデータを送信
+    // socket.broadcast.emit('notifyNewComer', `${name} joined`)
+  })
+})
+
+
+/** js **/
+io.of('/namespace1').on('connection', socket => {
+  // この名前空間に接続する全クライアントにデータを送信
+  io.of('/namespace1').emit('someEvent', 'foo')
+})
+
+
+/** js **/
+io.on('connection', socket => {
+  // socketをroomAに入れる
+  socket.join('roomA')
+  // roomAに存在するsocketのみにデータを送信
+  io.to('roomA').emit('someEvent', 'foo')
+  // socketをroomAから出す
+  socket.leave('roomA')
+})
+
+
+/** js **/
+io.use((socket, next) => {
+  // socketが生成されるたびに実行される
+  // 認証を行う例
+  if (isLogin(socket.request.headers)) {
+    next()
+  } else {
+    next(new Error('Need login'))
+  }
+})
+
+io.of('/namespace1').use((socket, next) => {
+  // 特定の名前空間に対してミドルウェアを登録する
+})
+
+io.on('connection', socket => {
+  socket.use((packet, next) => {
+    // クライアントからの通信のたびに実行される
+  })
+})
+
+
+/** js **/
+import io from 'socket.io-client'
+
+const socket = io()
+
+// 接続オプションを指定する場合（ここでは切断時に再接続しないよう設定）
+// const socket = io({ reconnection: false })
+
+// サーバが別ドメインの場合
+// const socket = io('https://socket.io-server.com')
+
+// 特定の名前空間に接続する場合
+// const socket = io('/namespace1')
+
+// 上記パターンの組み合わせ
+// const socket = io(
+//   'https://socket.io-server.com/namespace1',
+//   { reconnection: false }
+// )
+
+
+/** js **/
+// 任意のイベント名でサーバにデータを送信
+socket.emit('registerName', userName)
+
+// 任意のイベント名でサーバからデータを受信
+socket.on('notifyNewComer', message =>
+  console.log(message)
+)
+
+
+/** js **/
+'use strict'
+const http = require('http')
+const WebSocket = require('ws')
+
+const server = http.createServer((req, res) => {
+  // 通常のHTTPリクエストのハンドリング
+}).listen(3000)
+
+// Serverインスタンス生成
+const ws = new WebSocket.Server({ server })
+
+// または、http.Serverインスタンスを使わず直接生成
+// const ws = new WebSocket.Server({ port: 3000 })
+
+
+/** js **/
+// 新しいクライアントからの接続に伴うconnectionイベント
+ws.on('connection', socket => {
+  // クライアントにデータを送信
+  socket.send('Hello')
+  // クライアントからデータを受信
+  socket.on('message', name => {
+    // 接続している全クライアントにイベントを送信
+    ws.clients.forEach(client => {
+      // 接続がオープンか確認する
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(`${name} joined`)
+      }
+    })
+    // または、このSocketインスタンスを介して接続しているクライアント以外の
+    // 全クライアントにイベントを送信
+    // ws.clients.forEach(client => {
+    //   if (client !== socket && client.readyState === WebSocket.OPEN) {
+    //     client.send(`${name} joined`)
+    //   }
+    // })
+  })
+})
+
+
+/** js **/
+const ws = new WebSocket.Server({
+  verifyClient: ({
+    origin, // クライアントのオリジン
+    req,    // リクエストオブジェクト（req.headersでヘッダ情報を参照可能）
+    secure  // セキュアかどうか（wssプロトコルでの接続かどうか）
+  }) => {
+    // 接続を許可するかどうかをbooleanで返す
+    return true
+  },
+  // 認証を非同期に行う場合は、verifyClientの第二引数にコールバックを取る
+  // verifyClient: (info, cb) => {
+  //   cb(true)
+  // }
+  server
+})
+
+
+/** js **/
+// WebSocket接続の作成
+const socket = new WebSocket('ws://localhost:3000')
+
+// 接続完了のリスナを設定
+socket.addEventListener('open', () => {
+  // ...
+})
+
+// メッセージ受信のリスナを設定
+socket.addEventListener('message', message => {
+  // サーバでsend()の引数に渡したものはmeessage.dataから取得できる
+  const data = message.data
+  // ...
+})
+
+
+/** js **/
+// サーバにメッセージを送信する
+// 必要に応じて、状態がOPENになっているかどうか確認する
+// または、openイベントリスナの中で実行する
+if (socket.readyState === WebSocket.OPEN) {
+  socket.send('Taro')
+}
+
+// 接続を閉じる
+socket.close()
+
+
+/** js **/
+// 送信側
+socket.send(JSON.stringify({ foo: 1 }))
+
+// 受信側
+// サーバサイドの場合
+socket.on('message', message => {
+  const data = JSON.parse(message)
+})
+// クライアントサイドの場合
+socket.addEventListener('message', message => {
+  const data = JSON.parse(message.data)
+})
+
+
+/** SHELL **/
+$ npm init -y 
+# ... （省略）
+$ npm install next react react-dom socket.io socket.io-client 
+
+
+/** todo-socket-io/package.json **/
+{
+  // ...
+  "scripts": {
+    "start": "node app",
+    // ...
+  },
+  // ...
+}
+
+
+/** todo-socket-io/app.js **/
+'use strict'
+const http = require('http')
+const next = require('next')
+const Server = require('socket.io')
+
+let todos = [
+  { id: 1, title: 'ネーム', completed: false },
+  { id: 2, title: '下書き', completed: true }
+]
+
+// ToDoのIDの値を管理するための変数
+let id = 2
+
+const dev = process.env.NODE_ENV !== 'production'
+const nextApp = next({ dev })
+
+nextApp.prepare().then(
+  () => {
+    // Next.jsのリクエストハンドラを引数にhttp.createServer()を実行
+    const server = http.createServer(nextApp.getRequestHandler()).listen(3000)
+
+    const io = Server(server)
+    // /todos名前空間で接続待機
+    const ioTodos = io.of('/todos')
+    ioTodos.on('connection', socket => {
+      console.log('connected')
+      // 接続したクライアントにToDo一覧を送信
+      socket.emit('todos', todos)
+
+      // 接続したクライアントからの各種イベントに対応
+      // ...
+    })
+  },
+  err => {
+    console.error(err)
+    process.exit(1)
+  }
+)
+
+
+/** todo-socket-io/app.js（クライアントからのイベントのハンドリング） **/
+// ...
+
+// 接続したクライアントからの各種イベントに対応
+socket
+  // ToDo作成
+  .on('createTodo', title => {
+    if (typeof title !== 'string' || !title) {
+      return
+    }
+    const todo = { id: id += 1, title, completed: false }
+    todos.push(todo)
+    ioTodos.emit('todos', todos)
+  })
+  // ToDoのcompletedの更新
+  .on('updateCompleted', (id, completed) => {
+    todos = todos.map(todo =>
+      todo.id === id ? { ...todo, completed } : todo
+    )
+    ioTodos.emit('todos', todos)
+  })
+  // ToDo削除
+  .on('deleteTodo', id => {
+    todos = todos.filter(todo => todo.id !== id)
+    ioTodos.emit('todos', todos)
+  })
+
+// ...
+
+
+/** todo-socket-io/components/Todos.js **/
+import { useEffect, useState } from 'react'
+import Link from 'next/link'
+import Head from 'next/head'
+import io from 'socket.io-client'
+
+// 各ページに関する情報の定義
+const pages = {
+  index: { title: 'すべてのToDo' },
+  active: { title: '未完了のToDo', completed: false },
+  completed: { title: '完了したToDo', completed: true }
+}
+
+export default function Todos(props) {
+  const { title, completed } = pages[props.page]
+  const [todos, setTodos] = useState([])
+
+  // socketをstateとして保持
+  const [socket, setSocket] = useState()
+
+  useEffect(() => {
+    // socketの生成
+    const socket = io('/todos')
+    socket.on('todos', todos => {
+      setTodos(
+        typeof completed === 'undefined'
+          ? todos
+          : todos.filter(todo => todo.completed === completed)
+      )
+    })
+    setSocket(socket)
+    // コンポーネントのクリーンアップ時にsocketをクローズ
+    return () => socket.close()
+  }, [props.page])
+
+  // JSX
+  return (
+    <>
+      {/* ... */}
+    </>
+  )
+}
+
+
+/** todo-socket-io/components/Todos.js（JSX） **/
+// ...
+
+// JSX
+return (
+  <>
+    <Head>
+      <title>{title}</title>
+    </Head>
+    <h1>{title}</h1>
+    <label>
+      新しいTodoを入力
+      <input onKeyPress={e => {
+        // Enterキーが押されたらToDoを登録する
+        const title = e.target.value
+        if (e.key !== 'Enter' || !title) {
+          return
+        }
+        e.target.value = ''
+        socket.emit('createTodo', title)
+      }}/>
+    </label>
+    {/* ToDo一覧 */}
+    <ul>
+      {todos.map(({ id, title, completed }) =>
+        <li key={id}>
+          <label style={completed ? { textDecoration: 'line-through' } : {}}>
+            <input
+              type="checkbox"
+              checked={completed}
+              onChange={e =>
+                socket.emit('updateCompleted', id, e.target.checked)
+              }
+            />
+            {title}
+          </label>
+          <button onClick={() => socket.emit('deleteTodo', id)}>削除</button>
+        </li>
+      )}
+    </ul>
+    <div>{pageLinks}</div>
+  </>
+)
+
+// ...
