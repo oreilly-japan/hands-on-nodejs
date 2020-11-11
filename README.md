@@ -31,4 +31,8 @@
 
 ## 正誤表
 
-まだありません。誤植など間違いを見つけた方は、japan@oreilly.co.jpまでお知らせください。
+本書の正誤情報は以下のページで公開しています。
+
+https://github.com/oreilly-japan/hands-on-nodejs/wiki/errata
+
+本ページに掲載されていない誤植など間違いを見つけた方は、[japan＠oreilly.co.jp](<mailto:japan＠oreilly.co.jp>)までお知らせください。
