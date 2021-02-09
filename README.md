@@ -36,3 +36,17 @@
 https://github.com/oreilly-japan/hands-on-nodejs/wiki/errata
 
 本ページに掲載されていない誤植など間違いを見つけた方は、[japan＠oreilly.co.jp](<mailto:japan＠oreilly.co.jp>)までお知らせください。
+
+## FAQ
+
+### `await`利用時に、`Uncaught SyntaxError: await is only valid in async function`のエラーが出る
+
+本書記載のサンプルコードをREPLで実行した際にこのエラーが出た場合は、REPL起動時に`--experimental-repl-await`フラグを指定しているか確認してください。
+
+```sh
+$ node --experimental-repl-await
+> await Promise.resolve('foo')
+'foo'
+```
+
+`--experimental-repl-await`フラグについては、本書P.100のコラムを参照してください。
